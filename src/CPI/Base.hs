@@ -3,6 +3,7 @@ module CPI.Base(
   , CloudError(..)
   , loadConfig
   , readRequest
+  , writeResponse
 ) where
 
 import           Prelude                hiding (readFile)
@@ -30,11 +31,13 @@ class MonadThrow m => System m where
   arguments :: m [Text]
   readFile :: Text -> m ByteString
   readStdin :: m ByteString
+  writeStdout :: ByteString -> m ()
 
 instance System IO where
   arguments = getArgs >>= pure . fmap Text.pack
   readFile = ByteString.readFile . Text.unpack
   readStdin = ByteString.getContents
+  writeStdout = ByteString.putStr
 
 loadConfig :: (Monad m, System m) => m ByteString
 loadConfig = do
@@ -45,3 +48,6 @@ loadConfig = do
 
 readRequest :: (Monad m, System m) => m ByteString
 readRequest = readStdin
+
+writeResponse :: (Monad m, System m) => ByteString -> m ()
+writeResponse = writeStdout

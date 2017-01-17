@@ -38,6 +38,9 @@ spec = do
             stdinContent = "content"
           }
       runResult input readRequest `shouldBe` "content"
+  describe "writeResponse" $ do
+    it "should write to `stdout`" $ do
+      runOutput Input{} (writeResponse "content") `shouldBe` (Output {stdout = "content"})
 
 run :: Input -> SystemT a -> Either SomeException (a, Output)
 run input f = runWriterT (runReaderT (runSystemT f) input)
@@ -45,6 +48,11 @@ run input f = runWriterT (runReaderT (runSystemT f) input)
 runResult :: Input -> SystemT a -> a
 runResult input f = case run input f of
   Right (a, _) -> a
+  Left err     -> error $ "Unexpected result of `runResult`: " ++ show err
+
+runOutput :: Input -> SystemT a -> Output
+runOutput input f = case run input f of
+  Right (_, output) -> output
   Left err     -> error $ "Unexpected result of `runResult`: " ++ show err
 
 runError :: (Show a) => Input -> SystemT a -> CloudError
@@ -81,3 +89,4 @@ instance System SystemT where
   readStdin = do
     input <- ask
     pure $ stdinContent input
+  writeStdout = tell.Output
