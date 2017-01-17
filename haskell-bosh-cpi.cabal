@@ -1,0 +1,48 @@
+name:                haskell-bosh-cpi
+version:             0.0.1.0
+synopsis:            A library to build BOSH Cloud Provider Interfaces with Haskell
+description:         Please see README.md
+homepage:            https://github.com/SAP/haskell-bosh-cpi#readme
+license:             BSD3
+-- license-file:        LICENSE
+author:              Jan von Löwenstein
+maintainer:          jan.von.loewenstein@sap.com
+copyright:           2017 SAP SE
+category:            Cloud
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+
+library
+  -- ghc-options:        -Wall
+  extensions:          OverloadedStrings
+                     , GeneralizedNewtypeDeriving
+  hs-source-dirs:      src
+  exposed-modules:     CPI.Base
+  build-depends:       base >= 4.7 && < 5
+                     , text
+                     , bytestring
+                     , safe-exceptions
+  default-language:    Haskell2010
+
+test-suite haskell-bosh-cpi-test
+  extensions:          OverloadedStrings
+                     , GeneralizedNewtypeDeriving
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  other-modules:       CPI.BaseSpec
+  main-is:             Spec.hs
+  build-depends:       base
+                     , hspec
+                     , text
+                     , bytestring
+                     , mtl
+                     , either
+                     , safe-exceptions
+                     , haskell-bosh-cpi
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/SAP/haskell-bosh-cpi
