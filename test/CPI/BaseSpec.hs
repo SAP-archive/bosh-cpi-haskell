@@ -32,6 +32,12 @@ spec = do
               , fileContent = "content"
             }
         runError input loadConfig `shouldBe` CloudError "No config file location provided"
+  describe "readRequest" $ do
+    it "should read content from `stdin`" $ do
+      let input = Input {
+            stdinContent = "content"
+          }
+      runResult input readRequest `shouldBe` "content"
 
 run :: Input -> SystemT a -> Either SomeException (a, Output)
 run input f = runWriterT (runReaderT (runSystemT f) input)
@@ -51,8 +57,9 @@ newtype SystemT a = SystemT {
 } deriving (Functor, Applicative, Monad, MonadReader Input, MonadWriter Output, MonadThrow)
 
 data Input = Input {
-    args        :: [Text]
-  , fileContent :: ByteString
+    args         :: [Text]
+  , fileContent  :: ByteString
+  , stdinContent :: ByteString
 }
 
 data Output = Output {
@@ -71,3 +78,6 @@ instance System SystemT where
     if path == expectedPath
       then pure $ fileContent input
       else error "Unexpected argument for function call to `readFile`"
+  readStdin = do
+    input <- ask
+    pure $ stdinContent input

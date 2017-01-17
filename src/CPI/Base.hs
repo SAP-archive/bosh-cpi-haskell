@@ -2,6 +2,7 @@ module CPI.Base(
     System(..)
   , CloudError(..)
   , loadConfig
+  , readRequest
 ) where
 
 import           Prelude                hiding (readFile)
@@ -28,10 +29,12 @@ instance Exception CloudError
 class MonadThrow m => System m where
   arguments :: m [Text]
   readFile :: Text -> m ByteString
+  readStdin :: m ByteString
 
 instance System IO where
   arguments = getArgs >>= pure . fmap Text.pack
   readFile = ByteString.readFile . Text.unpack
+  readStdin = ByteString.getContents
 
 loadConfig :: (Monad m, System m) => m ByteString
 loadConfig = do
@@ -39,3 +42,6 @@ loadConfig = do
   if not (null args)
     then readFile $ head args
     else throw $ CloudError "No config file location provided"
+
+readRequest :: (Monad m, System m) => m ByteString
+readRequest = readStdin
