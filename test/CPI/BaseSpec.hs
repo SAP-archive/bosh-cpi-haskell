@@ -1,3 +1,7 @@
+{-# LANGUAGE AllowAmbiguousTypes   #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+
 module CPI.BaseSpec(spec) where
 
 import           CPI.Base
@@ -13,7 +17,6 @@ import           Data.ByteString            (ByteString)
 import qualified Data.ByteString            as ByteString
 import           Data.Text                  (Text)
 
-import           Control.Exception
 import           Control.Exception.Safe
 
 spec :: Spec
@@ -40,28 +43,71 @@ spec = do
       runResult input readRequest `shouldBe` "content"
   describe "writeResponse" $ do
     it "should write to `stdout`" $ do
-      runOutput Input{} (writeResponse "content") `shouldBe` (Output {stdout = "content"})
+      runOutput Input{} (writeResponse "content") `shouldBe` Output {stdout = "content"}
+  describe "parseRequest" $ do
+    it "should " $ do
+      runResult Input{} (parseRequest "request") `shouldBe` Request "request"
+  describe "runRequest" $ do
+    it "provides parsed configuration via reader" $ do
+      let input = Input {
+              args = [""]
+            , fileContent = "content"
+            , stdinContent = ""}
+          handler :: Request -> Cpi TestConfig TestSystem Response
+          handler request = do
+            config <- ask
+            if config /= TestConfig "content"
+              -- TODO expectation does not belong here. How can be bring it to the outside?
+              then throw $ CloudError $ "Unexpected configuration " ++ show config
+              else pure $ Response ""
+      runResult input (runRequest handler) `shouldBe` ()
+    it "should read and parse the request" $ do
+      let input = Input {
+              args = [""]
+            , fileContent = ""
+            , stdinContent = "request"}
+          handler :: Request -> Cpi TestConfig TestSystem Response
+          handler request = do
+            if request /= Request "request"
+              -- TODO expectation does not belong here. How can be bring it to the outside?
+              then throw $ CloudError $ "Unexpected request " ++ show request
+              else pure $ Response ""
+      runResult input (runRequest handler) `shouldBe` ()
+    it "should write the response" $ do
+      let input = Input {
+              args = [""]
+            , fileContent = ""
+            , stdinContent = ""}
+          handler :: Request -> Cpi TestConfig TestSystem Response
+          handler request = do
+            pure $ Response "response"
+      runOutput input (runRequest handler) `shouldBe` Output "response"
 
-run :: Input -> SystemT a -> Either SomeException (a, Output)
-run input f = runWriterT (runReaderT (runSystemT f) input)
+data TestConfig = TestConfig ByteString deriving(Eq, Show)
 
-runResult :: Input -> SystemT a -> a
+instance MonadCpi TestConfig TestSystem where
+  parseConfig raw = pure $ TestConfig raw
+
+run :: Input -> TestSystem a -> Either SomeException (a, Output)
+run input f = runWriterT (runReaderT (runTestSystem f) input)
+
+runResult :: Input -> TestSystem a -> a
 runResult input f = case run input f of
   Right (a, _) -> a
   Left err     -> error $ "Unexpected result of `runResult`: " ++ show err
 
-runOutput :: Input -> SystemT a -> Output
+runOutput :: Input -> TestSystem a -> Output
 runOutput input f = case run input f of
   Right (_, output) -> output
   Left err     -> error $ "Unexpected result of `runResult`: " ++ show err
 
-runError :: (Show a) => Input -> SystemT a -> CloudError
+runError :: (Show a) => Input -> TestSystem a -> CloudError
 runError input f = case run input f of
   Right output -> error $ "Unexpected result of `runResult`: " ++ show output
   Left err     -> fromJust $ fromException err
 
-newtype SystemT a = SystemT {
-  runSystemT :: ReaderT Input ((WriterT Output) (Either SomeException)) a
+newtype TestSystem a = TestSystem {
+  runTestSystem :: ReaderT Input ((WriterT Output) (Either SomeException)) a
 } deriving (Functor, Applicative, Monad, MonadReader Input, MonadWriter Output, MonadThrow)
 
 data Input = Input {
@@ -78,7 +124,7 @@ instance Monoid Output where
   mempty = Output ByteString.empty
   mappend (Output left) (Output right) = Output $ mappend left right
 
-instance System SystemT where
+instance System TestSystem where
   arguments = args <$> ask
   readFile path = do
     input <- ask
