@@ -15,6 +15,8 @@ import           Data.Maybe
 
 import           Data.ByteString            (ByteString)
 import qualified Data.ByteString            as ByteString
+import           Data.HashMap.Strict        (HashMap)
+import qualified Data.HashMap.Strict        as HashMap
 import           Data.Text                  (Text)
 
 import           Control.Exception.Safe
@@ -45,14 +47,23 @@ spec = do
     it "should write to `stdout`" $ do
       runTestOutput TestInput{} (writeResponse "content") `shouldBe` TestOutput {stdout = "content"}
   describe "parseRequest" $ do
-    it "should " $ do
-      runTestResult TestInput{} (parseRequest "request") `shouldBe` Request "request"
+    it "should parse a request with 'method', 'arguments' and 'context' fields" $ do
+      runTestResult TestInput{} (parseRequest "{\"method\":\"testMethod\",\"arguments\":[],\"context\":{}}")
+        `shouldBe`
+       Request {
+           requestMethod = "testMethod"
+         , requestArguments = []
+         , requestContext = HashMap.empty
+       }
   describe "runRequest" $ do
+    let input = TestInput {
+            args = [""]
+          , fileContent = ""
+          , stdinContent = "{\"method\":\"testMethod\",\"arguments\":[],\"context\":{}}"}
     it "provides parsed configuration via reader" $ do
-      let input = TestInput {
-              args = [""]
-            , fileContent = "content"
-            , stdinContent = ""}
+      let input' = input {
+            fileContent = "content"
+          }
           handler :: Request -> Cpi TestConfig TestSystem Response
           handler request = do
             config <- ask
@@ -60,25 +71,21 @@ spec = do
               -- TODO expectation does not belong here. How can be bring it to the outside?
               then throw $ CloudError $ "Unexpected configuration " ++ show config
               else pure $ Response ""
-      runTestResult input (runRequest handler) `shouldBe` ()
+      runTestResult input' (runRequest handler) `shouldBe` ()
     it "should read and parse the request" $ do
-      let input = TestInput {
-              args = [""]
-            , fileContent = ""
-            , stdinContent = "request"}
-          handler :: Request -> Cpi TestConfig TestSystem Response
+      let handler :: Request -> Cpi TestConfig TestSystem Response
           handler request = do
-            if request /= Request "request"
+            if request /= Request {
+                              requestMethod = "testMethod"
+                            , requestArguments = []
+                            , requestContext = HashMap.empty
+                          }
               -- TODO expectation does not belong here. How can be bring it to the outside?
               then throw $ CloudError $ "Unexpected request " ++ show request
               else pure $ Response ""
       runTestResult input (runRequest handler) `shouldBe` ()
     it "should write the response" $ do
-      let input = TestInput {
-              args = [""]
-            , fileContent = ""
-            , stdinContent = ""}
-          handler :: Request -> Cpi TestConfig TestSystem Response
+      let handler :: Request -> Cpi TestConfig TestSystem Response
           handler request = do
             pure $ Response "response"
       runTestOutput input (runRequest handler) `shouldBe` TestOutput "response"

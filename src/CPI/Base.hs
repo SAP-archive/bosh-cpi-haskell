@@ -23,8 +23,14 @@ import           Control.Monad.Reader
 
 import           Data.ByteString        (ByteString)
 import qualified Data.ByteString        as ByteString
+import           Data.ByteString.Lazy   (fromStrict)
+import           Data.HashMap.Strict    (HashMap)
+import qualified Data.HashMap.Strict    as HashMap
 import           Data.Text              (Text)
 import qualified Data.Text              as Text
+
+import           Data.Aeson
+import           Data.Aeson.Types
 
 import           Data.Typeable
 
@@ -61,12 +67,28 @@ readRequest :: (Monad m, System m) => m ByteString
 readRequest = readStdin
 
 parseRequest :: (Monad m, System m) => ByteString -> m Request
-parseRequest raw = pure $ Request raw
+parseRequest raw = do
+  either
+    (\msg -> throw $ CloudError $ "Could not parse request" ++ msg)
+    return
+    (eitherDecode' $ fromStrict raw)
 
 writeResponse :: (Monad m, System m) => ByteString -> m ()
 writeResponse = writeStdout
 
-data Request = Request ByteString deriving (Eq, Show)
+data Request = Request {
+    requestMethod    :: Text
+  , requestArguments :: [Value]
+  , requestContext   :: HashMap Text Value
+} deriving (Eq, Show)
+
+instance FromJSON Request where
+  parseJSON (Object v) = Request
+                        <$> v .: "method"
+                        <*> v .: "arguments"
+                        <*> v .: "context"
+  parseJSON invalid    = typeMismatch "Request" invalid
+
 data Response = Response ByteString deriving (Eq, Show)
 
 runRequest :: (MonadCpi c m, System m) => (Request -> Cpi c m Response) -> m ()
