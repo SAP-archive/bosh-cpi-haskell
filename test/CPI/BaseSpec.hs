@@ -25,38 +25,41 @@ spec :: Spec
 spec = do
   describe "loadConfig" $ do
     it "should load the content of the file given as the first commandline argument" $ do
-      let input = TestInput {
+      let input = mkTestInput {
               args = ["file"]
             , fileContent = "content"
           }
-      runTestResult input loadConfig `shouldBe` "content"
+      result <- runTestResult input loadConfig
+      result `shouldBe` "content"
     context "when there is no file specified via commandline argument" $ do
       it "should throw a `CloudError`" $ do
-        let input = TestInput {
+        let input = mkTestInput {
                 args = []
               , fileContent = "content"
             }
-        runError input loadConfig `shouldBe` CloudError "No config file location provided"
+        result <- runError input loadConfig
+        result `shouldBe` CloudError "No config file location provided"
   describe "readRequest" $ do
     it "should read content from `stdin`" $ do
-      let input = TestInput {
+      let input = mkTestInput {
             stdinContent = "content"
           }
-      runTestResult input readRequest `shouldBe` "content"
+      result <- runTestResult input readRequest
+      result `shouldBe` "content"
   describe "writeResponse" $ do
     it "should write to `stdout`" $ do
-      runTestOutput TestInput{} (writeResponse "content") `shouldBe` TestOutput {stdout = "content"}
+      result <- runTestOutput mkTestInput (writeResponse "content")
+      result `shouldBe` mkTestOutput {stdout = "content"}
   describe "parseRequest" $ do
     it "should parse a request with 'method', 'arguments' and 'context' fields" $ do
-      runTestResult TestInput{} (parseRequest "{\"method\":\"testMethod\",\"arguments\":[],\"context\":{}}")
-        `shouldBe`
-       Request {
+      result <- runTestResult mkTestInput (parseRequest "{\"method\":\"testMethod\",\"arguments\":[],\"context\":{}}")
+      result `shouldBe` Request {
            requestMethod = "testMethod"
          , requestArguments = []
          , requestContext = HashMap.empty
        }
   describe "runRequest" $ do
-    let input = TestInput {
+    let input = mkTestInput {
             args = [""]
           , fileContent = ""
           , stdinContent = "{\"method\":\"testMethod\",\"arguments\":[],\"context\":{}}"}
@@ -70,8 +73,9 @@ spec = do
             if config /= TestConfig "content"
               -- TODO expectation does not belong here. How can be bring it to the outside?
               then throw $ CloudError $ "Unexpected configuration " ++ show config
-              else pure $ Response ""
-      runTestResult input' (runRequest handler) `shouldBe` ()
+              else pure $ Response "id"
+      result <- runTestResult input' (runRequest handler)
+      result `shouldBe` ()
     it "should read and parse the request" $ do
       let handler :: Request -> Cpi TestConfig TestSystem Response
           handler request = do
@@ -82,40 +86,40 @@ spec = do
                           }
               -- TODO expectation does not belong here. How can be bring it to the outside?
               then throw $ CloudError $ "Unexpected request " ++ show request
-              else pure $ Response ""
-      runTestResult input (runRequest handler) `shouldBe` ()
-    it "should write the response" $ do
-      let handler :: Request -> Cpi TestConfig TestSystem Response
-          handler request = do
-            pure $ Response "response"
-      runTestOutput input (runRequest handler) `shouldBe` TestOutput "response"
+              else pure $ Response "id"
+      result <- runTestResult input (runRequest handler)
+      result `shouldBe` ()
 
 data TestConfig = TestConfig ByteString deriving(Eq, Show)
 
 instance MonadCpi TestConfig TestSystem where
   parseConfig raw = pure $ TestConfig raw
 
-runTest :: TestInput -> TestSystem a -> Either SomeException (a, TestOutput)
+data TestCpi
+
+runTest :: TestInput -> TestSystem a -> IO (a, TestOutput)
 runTest input f = runWriterT (runReaderT (runTestSystem f) input)
 
-runTestResult :: TestInput -> TestSystem a -> a
-runTestResult input f = case runTest input f of
-  Right (a, _) -> a
-  Left err     -> error $ "Unexpected result of `runTestResult`: " ++ show err
+runTestResult :: TestInput -> TestSystem a -> IO a
+runTestResult input f = do
+  (a, _) <- runTest input f
+  pure a
 
-runTestOutput :: TestInput -> TestSystem a -> TestOutput
-runTestOutput input f = case runTest input f of
-  Right (_, output) -> output
-  Left err     -> error $ "Unexpected result of `runTestOutput`: " ++ show err
+runTestOutput :: TestInput -> TestSystem a -> IO TestOutput
+runTestOutput input f = do
+  (_, output) <- runTest input f
+  pure output
 
-runError :: (Show a) => TestInput -> TestSystem a -> CloudError
-runError input f = case runTest input f of
-  Right output -> error $ "Unexpected result of `runTestResult`: " ++ show output
-  Left err     -> fromJust $ fromException err
+runError :: (Show a) => TestInput -> TestSystem a -> IO CloudError
+runError input f = do
+  result <- try( runTest input f )
+  pure $ case result of
+    Right output -> error $ "Unexpected result of `runTestResult`: " ++ show output
+    Left err     -> fromJust $ fromException err
 
 newtype TestSystem a = TestSystem {
-  runTestSystem :: ReaderT TestInput ((WriterT TestOutput) (Either SomeException)) a
-} deriving (Functor, Applicative, Monad, MonadReader TestInput, MonadWriter TestOutput, MonadThrow)
+  runTestSystem :: ReaderT TestInput ((WriterT TestOutput) IO) a
+} deriving (Functor, Applicative, Monad, MonadReader TestInput, MonadWriter TestOutput, MonadThrow, MonadIO)
 
 data TestInput = TestInput {
     args         :: [Text]
@@ -123,9 +127,19 @@ data TestInput = TestInput {
   , stdinContent :: ByteString
 }
 
+mkTestInput = TestInput {
+    args = []
+  , fileContent = ""
+  , stdinContent = ""
+}
+
 data TestOutput = TestOutput {
     stdout :: ByteString
 } deriving (Eq, Show)
+
+mkTestOutput = TestOutput {
+    stdout = ""
+}
 
 instance Monoid TestOutput where
   mempty = TestOutput ByteString.empty
