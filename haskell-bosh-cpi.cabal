@@ -19,11 +19,13 @@ library
                      , GeneralizedNewtypeDeriving
   hs-source-dirs:      src
   exposed-modules:     CPI.Base
+                     , CPI.Base.AgentConfig
   build-depends:       base >= 4.7 && < 5
                      , text
                      , bytestring
                      , unordered-containers
                      , aeson
+                     , lens
                      , mtl
                      , safe-exceptions
   default-language:    Haskell2010
@@ -34,16 +36,20 @@ test-suite haskell-bosh-cpi-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   other-modules:       CPI.BaseSpec
+                     , CPI.Base.AgentConfigSpec
   main-is:             Spec.hs
   build-depends:       base
                      , hspec
                      , text
                      , bytestring
                      , aeson
+                     , aeson-qq
+                     , lens
                      , unordered-containers
                      , mtl
                      , either
                      , safe-exceptions
+                     , raw-strings-qq
                      , haskell-bosh-cpi
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
