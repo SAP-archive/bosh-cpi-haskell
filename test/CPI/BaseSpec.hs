@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes   #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 
@@ -14,12 +15,20 @@ import           Data.Either
 import           Data.Maybe
 
 import           Data.ByteString            (ByteString)
-import qualified Data.ByteString            as ByteString
+import qualified Data.ByteString            as ByteString hiding (unpack)
+import qualified Data.ByteString.Char8      as ByteString
 import           Data.HashMap.Strict        (HashMap)
 import qualified Data.HashMap.Strict        as HashMap
 import           Data.Text                  (Text)
+import qualified Data.Text                  as Text
+
+
+
+import           Control.Monad.Log
 
 import           Control.Exception.Safe
+-- import           Control.Monad.Logger.CallStack
+-- import           System.Log.FastLogger
 
 spec :: Spec
 spec = do
@@ -111,6 +120,15 @@ spec = do
               }
         result <- runTestOutput input (runRequest handler)
         stdout result `shouldBe` "{\"result\":true}"
+    it "provides logging facilities" $ do
+      let handler :: Request -> Cpi TestConfig TestSystem Response
+          handler request = do
+            logDebug "test debug message"
+            pure Response {
+              responseResult = Id "id"
+            }
+      result <- runTestOutput input (runRequest handler)
+      ByteString.unpack (stderr result) `shouldContain` "test debug message"
 
 data TestConfig = TestConfig ByteString deriving(Eq, Show)
 
@@ -157,15 +175,17 @@ mkTestInput = TestInput {
 
 data TestOutput = TestOutput {
     stdout :: ByteString
+  , stderr :: ByteString
 } deriving (Eq, Show)
 
 mkTestOutput = TestOutput {
     stdout = ""
+  , stderr = ""
 }
 
 instance Monoid TestOutput where
-  mempty = TestOutput ByteString.empty
-  mappend (TestOutput left) (TestOutput right) = TestOutput $ mappend left right
+  mempty = TestOutput ByteString.empty ByteString.empty
+  mappend (TestOutput leftStdout leftStderr) (TestOutput rightStdout rightStderr) = TestOutput (leftStdout `mappend` rightStdout) (leftStderr `mappend` rightStderr)
 
 instance System TestSystem where
   arguments = args <$> ask
@@ -178,4 +198,5 @@ instance System TestSystem where
   readStdin = do
     input <- ask
     pure $ stdinContent input
-  writeStdout = tell.TestOutput
+  writeStdout output = tell $ mkTestOutput {stdout = output}
+  writeStderr output = tell $ mkTestOutput {stderr = output}
