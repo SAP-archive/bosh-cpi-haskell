@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   -- ghc-options:        -Wall
-  extensions:          OverloadedStrings
+  default-extensions:  OverloadedStrings
                      , GeneralizedNewtypeDeriving
   hs-source-dirs:      src
   exposed-modules:     CPI.Base
@@ -29,7 +29,7 @@ library
   default-language:    Haskell2010
 
 test-suite haskell-bosh-cpi-test
-  extensions:          OverloadedStrings
+  default-extensions:  OverloadedStrings
                      , GeneralizedNewtypeDeriving
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
