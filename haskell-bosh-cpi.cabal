@@ -39,6 +39,7 @@ test-suite haskell-bosh-cpi-test
                      , hspec
                      , text
                      , bytestring
+                     , aeson
                      , unordered-containers
                      , mtl
                      , either

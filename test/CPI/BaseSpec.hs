@@ -73,7 +73,9 @@ spec = do
             if config /= TestConfig "content"
               -- TODO expectation does not belong here. How can be bring it to the outside?
               then throw $ CloudError $ "Unexpected configuration " ++ show config
-              else pure $ Response "id"
+              else pure Response {
+                responseResult = Id "id"
+              }
       result <- runTestResult input' (runRequest handler)
       result `shouldBe` ()
     it "should read and parse the request" $ do
@@ -86,9 +88,29 @@ spec = do
                           }
               -- TODO expectation does not belong here. How can be bring it to the outside?
               then throw $ CloudError $ "Unexpected request " ++ show request
-              else pure $ Response "id"
+              else pure Response {
+                responseResult = Id "id"
+              }
       result <- runTestResult input (runRequest handler)
       result `shouldBe` ()
+    context "when the result type is a string" $ do
+      it "should write the response" $ do
+        let handler :: Request -> Cpi TestConfig TestSystem Response
+            handler request =
+              pure Response {
+                responseResult = Id "id"
+              }
+        result <- runTestOutput input (runRequest handler)
+        stdout result `shouldBe` "{\"result\":\"id\"}"
+    context "when the result type is a boolean" $ do
+      it "should write the response" $ do
+        let handler :: Request -> Cpi TestConfig TestSystem Response
+            handler request =
+              pure Response {
+                responseResult = Boolean True
+              }
+        result <- runTestOutput input (runRequest handler)
+        stdout result `shouldBe` "{\"result\":true}"
 
 data TestConfig = TestConfig ByteString deriving(Eq, Show)
 

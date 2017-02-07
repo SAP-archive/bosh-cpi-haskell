@@ -9,6 +9,7 @@ module CPI.Base(
   , MonadCpi(..)
   , Request(..)
   , Response(..)
+  , ResultType(..)
   , loadConfig
   , readRequest
   , parseRequest
@@ -23,7 +24,7 @@ import           Control.Monad.Reader
 
 import           Data.ByteString        (ByteString)
 import qualified Data.ByteString        as ByteString
-import           Data.ByteString.Lazy   (fromStrict)
+import           Data.ByteString.Lazy   (fromStrict, toStrict)
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HashMap
 import           Data.Text              (Text)
@@ -89,7 +90,20 @@ instance FromJSON Request where
                         <*> v .: "context"
   parseJSON invalid    = typeMismatch "Request" invalid
 
-data Response = Response ByteString deriving (Eq, Show)
+data Response =  Response {
+    responseResult :: ResultType
+} deriving (Eq, Show)
+
+instance ToJSON Response where
+    toJSON (Response responseResult) =
+        object ["result" .= responseResult]
+    toEncoding (Response responseResult) =
+        pairs ("result" .= responseResult)
+
+data ResultType = Id Text | Boolean Bool deriving (Eq, Show)
+instance ToJSON ResultType where
+    toJSON (Id text)      = String text
+    toJSON (Boolean text) = Bool text
 
 runRequest :: (MonadCpi c m, System m) => (Request -> Cpi c m Response) -> m ()
 runRequest handleRequest = do
@@ -97,13 +111,13 @@ runRequest handleRequest = do
             >>= parseConfig
   request <- readRequest
             >>= parseRequest
-  (Response response) <-
+  response <-
     runReaderT (
       runCpi (
         handleRequest request
         ))
     config
-  writeResponse response
+  writeResponse $ toStrict $ encode response
 
 newtype (Monad m, MonadCpi c m) => Cpi c m a = Cpi {
   runCpi :: ReaderT c m a
