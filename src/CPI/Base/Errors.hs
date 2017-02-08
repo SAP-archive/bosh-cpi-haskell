@@ -4,8 +4,9 @@ module CPI.Base.Errors(
 
 import           Control.Exception      (Exception)
 import           Control.Exception.Safe
+import           Data.Text              (Text)
 
-data CloudError = CloudError String
+data CloudError = CloudError Text
     deriving (Typeable, Show, Eq)
 
 instance Exception CloudError

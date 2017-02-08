@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module CPI.Base.TestSupport(
@@ -11,7 +12,8 @@ module CPI.Base.TestSupport(
   , runTestResult
   , runTestOutput
   , runError
-
+  , anyCloudError
+  , cloudErrorWithMessage
 ) where
 
 import           CPI.Base
@@ -24,35 +26,36 @@ import           Control.Exception.Safe
 import           Data.ByteString        (ByteString)
 import qualified Data.ByteString        as ByteString hiding (unpack)
 import           Data.Text              (Text)
+import           Test.Hspec
 
 data TestConfig = TestConfig ByteString deriving(Eq, Show)
 
-instance MonadCpi TestConfig TestSystem where
+instance MonadCpi TestConfig (TestSystem TestInput TestOutput) where
   parseConfig raw = pure $ TestConfig raw
 
-runTest :: TestInput -> TestSystem a -> IO (a, TestOutput)
+runTest :: input -> (TestSystem input output) a -> IO (a, output)
 runTest input f = runWriterT (runReaderT (runTestSystem f) input)
 
-runTestResult :: TestInput -> TestSystem a -> IO a
+runTestResult :: input -> (TestSystem input output) a -> IO a
 runTestResult input f = do
   (a, _) <- runTest input f
   pure a
 
-runTestOutput :: TestInput -> TestSystem a -> IO TestOutput
+runTestOutput :: input -> (TestSystem input output) a -> IO output
 runTestOutput input f = do
   (_, output) <- runTest input f
   pure output
 
-runError :: (Show a) => TestInput -> TestSystem a -> IO CloudError
+runError :: (Show a, Show output) => input -> (TestSystem input output) a -> IO CloudError
 runError input f = do
   result <- try( runTest input f )
   pure $ case result of
     Right output -> error $ "Unexpected result of `runTestResult`: " ++ show output
     Left err     -> fromJust $ fromException err
 
-newtype TestSystem a = TestSystem {
-  runTestSystem :: ReaderT TestInput ((WriterT TestOutput) IO) a
-} deriving (Functor, Applicative, Monad, MonadReader TestInput, MonadWriter TestOutput, MonadThrow, MonadIO)
+newtype TestSystem input output a = TestSystem {
+  runTestSystem :: ReaderT input ((WriterT output) IO) a
+} deriving (Functor, Applicative, Monad, MonadReader input, MonadWriter output, MonadThrow, MonadIO)
 
 data TestInput = TestInput {
     args         :: [Text]
@@ -80,7 +83,7 @@ instance Monoid TestOutput where
   mempty = TestOutput ByteString.empty ByteString.empty
   mappend (TestOutput leftStdout leftStderr) (TestOutput rightStdout rightStderr) = TestOutput (leftStdout `mappend` rightStdout) (leftStderr `mappend` rightStderr)
 
-instance System TestSystem where
+instance System (TestSystem TestInput TestOutput) where
   arguments = args <$> ask
   readFile path = do
     input <- ask
@@ -93,3 +96,9 @@ instance System TestSystem where
     pure $ stdinContent input
   writeStdout output = tell $ mkTestOutput {stdout = output}
   writeStderr output = tell $ mkTestOutput {stderr = output}
+
+anyCloudError :: Selector CloudError
+anyCloudError = const True
+
+cloudErrorWithMessage :: Text -> Selector CloudError
+cloudErrorWithMessage expectedMessage (CloudError message) = expectedMessage == message

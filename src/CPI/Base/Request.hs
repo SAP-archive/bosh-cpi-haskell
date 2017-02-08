@@ -1,6 +1,20 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module CPI.Base.Request(
     Request(..)
+  , AgentId(..)
+  , StemcellId(..)
+  , VolumeId(..)
+  , VmId(..)
+  , DiskId(..)
+  , VmProperties(..)
+  , StemcellProperties(..)
+  , DiskProperties(..)
+  , DiskLocality(..)
+  , Environment(..)
+  , Networks(..)
   , parseRequest
+  , parseArgument
 ) where
 
 import           CPI.Base.Errors
@@ -12,17 +26,19 @@ import           Prelude                hiding (readFile)
 import           Data.ByteString        (ByteString)
 import           Data.ByteString.Lazy   (fromStrict)
 import           Data.HashMap.Strict    (HashMap)
+import           Data.Semigroup
 import           Data.Text              (Text)
+import qualified Data.Text              as Text
 
 import           Data.Aeson
 import           Data.Aeson.Types
 
 import           Control.Exception.Safe
 
-parseRequest :: (System m) => ByteString -> m Request
+parseRequest :: (MonadThrow m) => ByteString -> m Request
 parseRequest raw =
   either
-    (\msg -> throw $ CloudError $ "Could not parse request" ++ msg)
+    (\msg -> throw $ CloudError $ "Could not parse request: '" <> Text.pack msg <> "'")
     return
     (eitherDecode' $ fromStrict raw)
 
@@ -38,3 +54,20 @@ instance FromJSON Request where
                         <*> v .: "arguments"
                         <*> v .: "context"
   parseJSON invalid    = typeMismatch "Request" invalid
+
+parseArgument :: (MonadThrow m, FromJSON a) => Value -> m a
+parseArgument input = case fromJSON input of
+  Success a -> return a
+  Error msg -> throwM (CloudError $ "Could not parse: '" <> Text.pack msg <> "'")
+
+newtype AgentId = AgentId Text deriving (Eq, Show, FromJSON, ToJSON)
+newtype StemcellId = StemcellId Text deriving (Eq, Show, FromJSON, ToJSON)
+newtype VolumeId = VolumeId Text deriving (Eq, Show, FromJSON, ToJSON)
+newtype VmId = VmId Text deriving (Eq, Show, FromJSON, ToJSON)
+newtype DiskId = DiskId Text deriving (Eq, Show, FromJSON, ToJSON)
+newtype VmProperties = VmProperties Object deriving (Eq, Show, FromJSON, ToJSON)
+newtype StemcellProperties = StemcellProperties Object deriving (Eq, Show, FromJSON, ToJSON)
+newtype DiskProperties = DiskProperties Object deriving (Eq, Show, FromJSON, ToJSON)
+type DiskLocality = [VolumeId]
+newtype Environment = Environment Object deriving (Eq, Show, FromJSON, ToJSON)
+newtype Networks = Networks Object deriving (Eq, Show, FromJSON, ToJSON)

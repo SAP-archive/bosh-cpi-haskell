@@ -5,6 +5,8 @@ import           CPI.Base.System
 import           CPI.Base.TestSupport
 import           Test.Hspec
 
+import           Data.ByteString      (ByteString)
+
 spec :: Spec
 spec = do
   describe "loadConfig" $ do
@@ -13,7 +15,7 @@ spec = do
               args = ["file"]
             , fileContent = "content"
           }
-      result <- runTestResult input loadConfig
+      result <- (runTestResult :: TestInput -> TestSystem TestInput TestOutput ByteString -> IO ByteString) input loadConfig
       result `shouldBe` "content"
     context "when there is no file specified via commandline argument" $ do
       it "should throw a `CloudError`" $ do
@@ -21,14 +23,14 @@ spec = do
                 args = []
               , fileContent = "content"
             }
-        result <- runError input loadConfig
+        result <- (runError :: TestInput -> TestSystem TestInput TestOutput ByteString -> IO CloudError) input loadConfig
         result `shouldBe` CloudError "No config file location provided"
   describe "readRequest" $ do
     it "should read content from `stdin`" $ do
       let input = mkTestInput {
             stdinContent = "content"
           }
-      result <- runTestResult input readRequest
+      result <- (runTestResult :: TestInput -> TestSystem TestInput TestOutput ByteString -> IO ByteString) input readRequest
       result `shouldBe` "content"
   describe "writeResponse" $ do
     it "should write to `stdout`" $ do

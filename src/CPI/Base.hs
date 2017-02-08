@@ -8,8 +8,10 @@
 module CPI.Base(
     module Base
   , Cpi(..)
+  , runCpi
   , MonadCpi(..)
   , runRequest
+  , handleRequest
 ) where
 
 import           Prelude                      hiding (readFile)
@@ -23,13 +25,15 @@ import           Control.Monad.Reader
 
 import           Data.ByteString              (ByteString)
 import           Data.ByteString.Lazy         (toStrict)
+import           Data.HashMap.Strict          as HashMap
+import           Data.Text                    (Text)
 
 import           Control.Exception.Safe
 import           Data.Aeson
-
+import           Data.Semigroup
 
 import           Control.Monad.Log
-import           Text.PrettyPrint.Leijen.Text hiding ((<$>))
+import           Text.PrettyPrint.Leijen.Text hiding ((<$>), (<>))
 
 runRequest :: (MonadCpi c m) => (Request -> Cpi c m Response) -> m ()
 runRequest handleRequest = do
@@ -38,13 +42,71 @@ runRequest handleRequest = do
   request <- readRequest
             >>= parseRequest
   response <-
-      runCpi (handleRequest request)
-        `runReaderT` config
+      runCpi config (handleRequest request)
+
   writeResponse $ toStrict $ encode response
 
+handleRequest :: (MonadCpi c m) => (Request -> Cpi c m Response)
+handleRequest request@Request{
+    requestMethod = method
+  , requestArguments = arguments
+  , requestContext = context
+} = case (method, arguments) of
+      ("create_stemcell", [filePath, cloudProperties]) -> do
+        StemcellId stemcellId <- join $ createStemcell
+                          <$> parseArgument filePath
+                          <*> parseArgument cloudProperties
+        return $ createSuccess $ Id stemcellId
+      ("create_vm", [agentId, stemcellId, vmProperties, networks, diskLocality, environment]) -> do
+        VmId vmCid <- join $ createVm
+                     <$> parseArgument agentId
+                     <*> parseArgument stemcellId
+                     <*> parseArgument vmProperties
+                     <*> parseArgument networks
+                     <*> parseArgument diskLocality
+                     <*> parseArgument environment
+        pure $ createSuccess $ Id vmCid
+      ("has_vm", [vmId]) -> do
+        hasVm <- join $ hasVm
+                     <$> parseArgument vmId
+        return $ createSuccess (Boolean hasVm)
+      ("delete_vm", [vmId]) -> do
+        join $ deleteVm
+            <$> parseArgument vmId
+        return $ createSuccess (Id "")
+      ("create_disk", [size, diskProperties, vmId]) -> do
+        DiskId diskCid <- join $ createDisk
+            <$> parseArgument size
+            <*> parseArgument diskProperties
+            <*> parseArgument vmId
+        return $ createSuccess (Id diskCid)
+      ("has_disk", [diskId]) -> do
+        hasDisk <- join $ hasDisk
+                     <$> parseArgument diskId
+        return $ createSuccess (Boolean hasDisk)
+      ("delete_disk", [diskId]) -> do
+        join $ deleteDisk
+            <$> parseArgument diskId
+        return $ createSuccess (Id "")
+      ("attach_disk", [vmId, diskId]) -> do
+        join $ attachDisk
+            <$> parseArgument vmId
+            <*> parseArgument diskId
+        return $ createSuccess (Id "")
+      ("detach_disk", [vmId, diskId]) -> do
+        join $ detachDisk
+            <$> parseArgument vmId
+            <*> parseArgument diskId
+        return $ createSuccess (Id "")
+      _ -> throwM $ CloudError ("Unknown method call '" <> method <> "'")
+
+
 newtype (Monad m, MonadCpi c m, System m) => Cpi c m a = Cpi {
-  runCpi :: ReaderT c m a
+  unCpi :: ReaderT c m a
 } deriving (Functor, Applicative, Monad, MonadReader c, MonadThrow, MonadTrans)
+
+runCpi :: MonadCpi c m => c -> Cpi c m a -> m a
+runCpi config cpi = unCpi cpi `runReaderT` config
 
 instance (System m) => System (Cpi c m) where
   arguments = lift arguments
@@ -55,3 +117,13 @@ instance (System m) => System (Cpi c m) where
 
 class (MonadThrow m, MonadLog (WithSeverity Doc) m, System m) => MonadCpi c m | c -> m where
   parseConfig :: ByteString -> m c
+  createStemcell :: FilePath -> StemcellProperties -> Cpi c m StemcellId
+  createVm :: AgentId -> StemcellId -> VmProperties -> Networks
+              -> DiskLocality -> Environment -> Cpi c m VmId
+  hasVm :: VmId -> Cpi c m Bool
+  deleteVm :: VmId -> Cpi c m ()
+  createDisk :: Integer -> DiskProperties -> VmId -> Cpi c m DiskId
+  hasDisk :: DiskId -> Cpi c m Bool
+  deleteDisk :: DiskId -> Cpi c m ()
+  attachDisk :: VmId -> DiskId -> Cpi c m ()
+  detachDisk :: VmId -> DiskId -> Cpi c m ()

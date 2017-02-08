@@ -1,6 +1,7 @@
 module CPI.Base.Response(
     Response(..)
   , ResultType(..)
+  , createSuccess
 ) where
 
 import           Data.Aeson.Types
@@ -17,6 +18,12 @@ instance ToJSON Response where
         pairs ("result" .= responseResult)
 
 data ResultType = Id Text | Boolean Bool deriving (Eq, Show)
+
 instance ToJSON ResultType where
     toJSON (Id text)      = String text
     toJSON (Boolean text) = Bool text
+
+createSuccess :: ResultType -> Response
+createSuccess result = Response {
+    responseResult = result
+  }

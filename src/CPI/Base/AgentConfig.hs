@@ -26,7 +26,7 @@ module CPI.Base.AgentConfig(
   , addPersistentDisk
 ) where
 
-import           CPI.Base
+import           CPI.Base.Errors
 
 import           Control.Exception.Safe
 import           Control.Lens
@@ -35,12 +35,14 @@ import           Data.Aeson.TH
 import           Data.ByteString        (ByteString)
 import           Data.ByteString.Lazy   (fromStrict)
 import           Data.HashMap.Strict    (HashMap)
+import           Data.Semigroup
 import           Data.Text              (Text)
+import qualified Data.Text              as Text
 
 parseSettings :: (MonadThrow m) => ByteString -> m AgentSettings
 parseSettings raw =
   either
-    (\msg -> throw $ CloudError $ "Could not parse agent settings " ++ msg)
+    (\msg -> throw $ CloudError $ "Could not parse agent settings " <> Text.pack msg)
     return
     (eitherDecode' $ fromStrict raw)
 
