@@ -6,11 +6,8 @@ import           Test.Hspec
 
 import           CPI.Base.AgentConfig
 
-import           Data.ByteString       (ByteString)
-import qualified Data.ByteString       as ByteString
 import qualified Data.ByteString.Char8
 import           Data.ByteString.Lazy  (toStrict)
-import           Data.HashMap.Strict   (HashMap)
 import qualified Data.HashMap.Strict   as HashMap
 
 import           Control.Lens

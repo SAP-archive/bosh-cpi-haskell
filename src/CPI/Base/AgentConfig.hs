@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveAnyClass  #-}
 {-# LANGUAGE DeriveGeneric   #-}
 {-# LANGUAGE RankNTypes      #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -31,15 +30,12 @@ import           CPI.Base
 
 import           Control.Exception.Safe
 import           Control.Lens
-import           Control.Lens.TH
 import           Data.Aeson
 import           Data.Aeson.TH
-import           Data.Aeson.Types
 import           Data.ByteString        (ByteString)
 import           Data.ByteString.Lazy   (fromStrict)
 import           Data.HashMap.Strict    (HashMap)
 import           Data.Text              (Text)
-import           GHC.Generics
 
 parseSettings :: (MonadThrow m) => ByteString -> m AgentSettings
 parseSettings raw =
