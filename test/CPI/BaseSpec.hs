@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE QuasiQuotes           #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 
 module CPI.BaseSpec(spec) where
@@ -20,11 +21,14 @@ import           Data.Aeson
 import           Data.ByteString            (ByteString)
 import qualified Data.ByteString            as ByteString hiding (unpack)
 import qualified Data.ByteString.Char8      as ByteString
+import           Data.ByteString.Lazy       (fromStrict, toStrict)
 import           Data.HashMap.Strict        (HashMap)
 import qualified Data.HashMap.Strict        as HashMap
 import           Data.Text                  (Text)
 import qualified Data.Text                  as Text
 import           Data.Vector                as Vector
+
+import           Data.Aeson.QQ
 
 import           Control.Monad.Log
 
@@ -47,9 +51,7 @@ spec = do
             if config /= TestConfig "content"
               -- TODO expectation does not belong here. How can be bring it to the outside?
               then throw $ CloudError $ ("Unexpected configuration " <> (Text.pack (show config)))
-              else pure Response {
-                responseResult = Id "id"
-              }
+              else pure $ createSuccess $ Id "id"
       result <- runTestResult input' (runRequest handler)
       result `shouldBe` ()
     it "should read and parse the request" $ do
@@ -62,38 +64,45 @@ spec = do
                           }
               -- TODO expectation does not belong here. How can be bring it to the outside?
               then throw $ CloudError $ ("Unexpected request " <> (Text.pack $ show request))
-              else pure Response {
-                responseResult = Id "id"
-              }
+              else pure $ createSuccess $ Id "id"
       result <- runTestResult input (runRequest handler)
       result `shouldBe` ()
     context "when the result type is a string" $ do
       it "should write the response" $ do
         let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
             handler request =
-              pure Response {
-                responseResult = Id "id"
-              }
+              pure $ createSuccess $ Id "id"
         result <- runTestOutput input (runRequest handler)
-        stdout result `shouldBe` "{\"result\":\"id\"}"
+        (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|{"result":"id", error:null}|]
     context "when the result type is a boolean" $ do
       it "should write the response" $ do
         let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
             handler request =
-              pure Response {
-                responseResult = Boolean True
-              }
+              pure $ createSuccess $ Boolean True
         result <- runTestOutput input (runRequest handler)
-        stdout result `shouldBe` "{\"result\":true}"
+        (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|{"result":true, error:null}|]
+    context "when an exception is thrown" $ do
+      it "should write an error response" $ do
+        let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
+            handler request = throwM $ CloudError "BOOM!!!"
+        result <- runTestOutput input (runRequest handler)
+        (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|
+          {
+            "result" : null,
+            "error" : {
+              "type" : "Bosh::Clouds::CloudError",
+              "message" : "BOOM!!!",
+              "ok_to_retry" : false
+            }
+          }|]
     it "provides logging facilities" $ do
       let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
           handler request = do
             logDebug "test debug message"
-            pure Response {
-              responseResult = Id "id"
-            }
+            pure $ createSuccess $ Id "id"
       result <- runTestOutput input (runRequest handler)
       ByteString.unpack (stderr result) `shouldContain` "test debug message"
+
   describe "handleRequest" $ do
     let request = Request {
         requestMethod = ""
@@ -117,7 +126,7 @@ spec = do
           ]
         }
         (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
-        responseResult response `shouldBe` Id "stemcellId"
+        (fromJust.responseResult) response `shouldBe` Id "stemcellId"
         output `shouldBe` [CreateStemcell
                             ("/path/to/stemcell")
                             (StemcellProperties HashMap.empty)
@@ -136,7 +145,7 @@ spec = do
           ]
         }
         (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
-        responseResult response `shouldBe` Id "vmId"
+        (fromJust.responseResult) response `shouldBe` Id "vmId"
         output `shouldBe` [CreateVm
                             (AgentId "agent-id")
                             (StemcellId "stemcell-id")
@@ -154,7 +163,7 @@ spec = do
          ]
        }
        (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
-       responseResult response `shouldBe` Boolean True
+       (fromJust.responseResult) response `shouldBe` Boolean True
        output `shouldBe` [HasVm
                            (VmId "vm-id")
                           ]
@@ -167,7 +176,7 @@ spec = do
          ]
        }
        (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
-       responseResult response `shouldBe` Id ""
+       (fromJust.responseResult) response `shouldBe` Id ""
        output `shouldBe` [DeleteVm
                            (VmId "vm-id")
                           ]
@@ -182,7 +191,7 @@ spec = do
           ]
         }
         (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
-        responseResult response `shouldBe` Id "diskId"
+        (fromJust.responseResult) response `shouldBe` Id "diskId"
         output `shouldBe` [CreateDisk
                             (5000)
                             (DiskProperties HashMap.empty)
@@ -197,7 +206,7 @@ spec = do
          ]
        }
        (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
-       responseResult response `shouldBe` Boolean True
+       (fromJust.responseResult) response `shouldBe` Boolean True
        output `shouldBe` [HasDisk
                            (DiskId "disk-id")
                           ]
@@ -210,7 +219,7 @@ spec = do
          ]
        }
        (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
-       responseResult response `shouldBe` Id ""
+       (fromJust.responseResult) response `shouldBe` Id ""
        output `shouldBe` [DeleteDisk
                            (DiskId "disk-id")
                           ]
@@ -224,7 +233,7 @@ spec = do
          ]
        }
        (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
-       responseResult response `shouldBe` Id ""
+       (fromJust.responseResult) response `shouldBe` Id ""
        output `shouldBe` [AttachDisk
                            (VmId "vm-id")
                            (DiskId "disk-id")
@@ -239,7 +248,7 @@ spec = do
          ]
        }
        (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
-       responseResult response `shouldBe` Id ""
+       (fromJust.responseResult) response `shouldBe` Id ""
        output `shouldBe` [DetachDisk
                            (VmId "vm-id")
                            (DiskId "disk-id")

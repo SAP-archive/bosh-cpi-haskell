@@ -35,15 +35,15 @@ import           Data.Semigroup
 import           Control.Monad.Log
 import           Text.PrettyPrint.Leijen.Text hiding ((<$>), (<>))
 
-runRequest :: (MonadCpi c m) => (Request -> Cpi c m Response) -> m ()
+runRequest :: (MonadCatch m, MonadCpi c m) => (Request -> Cpi c m Response) -> m ()
 runRequest handleRequest = do
-  config <- loadConfig
-            >>= parseConfig
-  request <- readRequest
-            >>= parseRequest
-  response <-
-      runCpi config (handleRequest request)
-
+  response <- do
+        config <- loadConfig
+                  >>= parseConfig
+        request <- readRequest
+                  >>= parseRequest
+        runCpi config (handleRequest request)
+   `catch` (pure.createFailure)
   writeResponse $ toStrict $ encode response
 
 handleRequest :: (MonadCpi c m) => (Request -> Cpi c m Response)

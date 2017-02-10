@@ -55,7 +55,7 @@ runError input f = do
 
 newtype TestSystem input output a = TestSystem {
   runTestSystem :: ReaderT input ((WriterT output) IO) a
-} deriving (Functor, Applicative, Monad, MonadReader input, MonadWriter output, MonadThrow, MonadIO)
+} deriving (Functor, Applicative, Monad, MonadReader input, MonadWriter output, MonadThrow, MonadCatch, MonadIO)
 
 data TestInput = TestInput {
     args         :: [Text]
