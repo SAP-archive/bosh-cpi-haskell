@@ -2,7 +2,6 @@
 
 module CPI.Base.Request(
     Request(..)
-  , AgentId(..)
   , StemcellId(..)
   , VolumeId(..)
   , VmId(..)
@@ -17,6 +16,7 @@ module CPI.Base.Request(
   , parseArgument
 ) where
 
+import           CPI.Base.Data
 import           CPI.Base.Errors
 import           CPI.Base.System
 
@@ -60,14 +60,13 @@ parseArgument input = case fromJSON input of
   Success a -> return a
   Error msg -> throwM (CloudError $ "Could not parse: '" <> Text.pack msg <> "'")
 
-newtype AgentId = AgentId Text deriving (Eq, Show, FromJSON, ToJSON)
 newtype StemcellId = StemcellId Text deriving (Eq, Show, FromJSON, ToJSON)
 newtype VolumeId = VolumeId Text deriving (Eq, Show, FromJSON, ToJSON)
 newtype VmId = VmId Text deriving (Eq, Show, FromJSON, ToJSON)
 newtype DiskId = DiskId Text deriving (Eq, Show, FromJSON, ToJSON)
-newtype VmProperties = VmProperties Object deriving (Eq, Show, FromJSON, ToJSON)
-newtype StemcellProperties = StemcellProperties Object deriving (Eq, Show, FromJSON, ToJSON)
-newtype DiskProperties = DiskProperties Object deriving (Eq, Show, FromJSON, ToJSON)
+newtype VmProperties = VmProperties Value deriving (Eq, Show, FromJSON, ToJSON)
+newtype StemcellProperties = StemcellProperties Value deriving (Eq, Show, FromJSON, ToJSON)
+newtype DiskProperties = DiskProperties Value deriving (Eq, Show, FromJSON, ToJSON)
 type DiskLocality = [VolumeId]
-newtype Environment = Environment Object deriving (Eq, Show, FromJSON, ToJSON)
-newtype Networks = Networks Object deriving (Eq, Show, FromJSON, ToJSON)
+newtype Environment = Environment Value deriving (Eq, Show, FromJSON, ToJSON)
+newtype Networks = Networks Value deriving (Eq, Show, FromJSON, ToJSON)

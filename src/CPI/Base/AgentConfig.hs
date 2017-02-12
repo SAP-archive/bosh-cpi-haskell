@@ -4,7 +4,6 @@
 
 module CPI.Base.AgentConfig(
     AgentSettings(..)
-  , AgentId(..)
   , agentId
   , blobstore
   , disks
@@ -26,6 +25,7 @@ module CPI.Base.AgentConfig(
   , addPersistentDisk
 ) where
 
+import           CPI.Base.Data
 import           CPI.Base.Errors
 
 import           Control.Exception.Safe
@@ -58,8 +58,6 @@ data AgentSettings = AgentSettings {
   , _trustedCerts :: Maybe Text
 } deriving (Eq, Show)
 
-newtype AgentId = AgentId Text
-    deriving (Eq, Show)
 newtype Blobstore = Blobstore (HashMap Text Value)
     deriving (Eq, Show)
 data Disks = Disks {
@@ -74,19 +72,18 @@ data Vm = Vm {
 } deriving (Eq, Show)
 
 makeLenses ''AgentSettings
-makeLenses ''AgentId
 makeLenses ''Blobstore
 makeLenses ''Disks
 makeLenses ''Network
 makeLenses ''Vm
 
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''AgentSettings)
-$(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''AgentId)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Blobstore)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Disks)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Network)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Vm)
 
+-- TODO we should use DiskId instead of Text
 addPersistentDisk :: AgentSettings -> Text -> Text -> AgentSettings
 addPersistentDisk settings diskId path = settings & disks._Just.persistent.at diskId.non "" .~ path
   -- Example settings.json

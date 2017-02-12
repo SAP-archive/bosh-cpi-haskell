@@ -129,7 +129,7 @@ spec = do
         (fromJust.responseResult) response `shouldBe` Id "stemcellId"
         output `shouldBe` [CreateStemcell
                             ("/path/to/stemcell")
-                            (StemcellProperties HashMap.empty)
+                            (StemcellProperties $ Object $ HashMap.empty)
                            ]
     context "when message is 'create_vm'" $ do
       it "should run 'createVm'" $ do
@@ -149,10 +149,10 @@ spec = do
         output `shouldBe` [CreateVm
                             (AgentId "agent-id")
                             (StemcellId "stemcell-id")
-                            (VmProperties HashMap.empty)
-                            (Networks HashMap.empty)
+                            (VmProperties $ Object $ HashMap.empty)
+                            (Networks $ Object $ HashMap.empty)
                             ([])
-                            (Environment HashMap.empty)
+                            (Environment $ Object $ HashMap.empty)
                            ]
     context "when message is 'has_vm'" $ do
       it "should run 'hasVm'" $ do
@@ -194,7 +194,7 @@ spec = do
         (fromJust.responseResult) response `shouldBe` Id "diskId"
         output `shouldBe` [CreateDisk
                             (5000)
-                            (DiskProperties HashMap.empty)
+                            (DiskProperties $ Object $ HashMap.empty)
                             (VmId "vm-id")
                            ]
     context "when message is 'has_disk'" $ do

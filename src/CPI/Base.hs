@@ -16,6 +16,8 @@ module CPI.Base(
 
 import           Prelude                      hiding (readFile)
 
+import           CPI.Base.AgentConfig         as Base
+import           CPI.Base.Data                as Base
 import           CPI.Base.Errors              as Base
 import           CPI.Base.Request             as Base
 import           CPI.Base.Response            as Base

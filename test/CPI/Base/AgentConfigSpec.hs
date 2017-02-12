@@ -5,6 +5,7 @@ module CPI.Base.AgentConfigSpec(spec) where
 import           Test.Hspec
 
 import           CPI.Base.AgentConfig
+import           CPI.Base.Data
 
 import qualified Data.ByteString.Char8
 import           Data.ByteString.Lazy  (toStrict)

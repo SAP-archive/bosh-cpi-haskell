@@ -20,6 +20,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     CPI.Base
                      , CPI.Base.AgentConfig
+                     , CPI.Base.Data
                      , CPI.Base.Errors
                      , CPI.Base.Request
                      , CPI.Base.Response
