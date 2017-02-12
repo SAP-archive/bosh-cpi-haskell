@@ -16,13 +16,14 @@ import qualified Data.ByteString              as ByteString hiding (pack)
 import qualified Data.ByteString.Char8        as ByteString (pack)
 import           Data.Text                    (Text)
 import qualified Data.Text                    as Text
+import           Data.Text.Lazy               (fromStrict)
 
 import           System.Environment           (getArgs)
 
 import           Control.Exception.Safe
 import           Control.Monad.Log
 import           System.IO                    (stderr)
-import           Text.PrettyPrint.Leijen.Text
+import           Text.PrettyPrint.Leijen.Text (Doc, text)
 
 class MonadThrow m => System m where
   arguments :: m [Text]
@@ -39,8 +40,8 @@ instance System IO where
   writeStderr = ByteString.hPutStr stderr
 
 -- TODO can we get rid of this orphan?
-instance (Monad m, System m) => MonadLog (WithSeverity Doc) m where
-  logMessageFree f = writeStderr $ f (ByteString.pack.show.renderWithSeverity id)
+instance (Monad m, System m) => MonadLog (WithSeverity Text) m where
+  logMessageFree f = writeStderr $ f (ByteString.pack.show.renderWithSeverity (text.fromStrict))
 
 loadConfig :: (System m) => m ByteString
 loadConfig = do

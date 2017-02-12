@@ -117,7 +117,7 @@ instance (System m) => System (Cpi c m) where
   writeStdout = lift.writeStdout
   writeStderr = lift.writeStderr
 
-class (MonadThrow m, MonadLog (WithSeverity Doc) m, System m) => MonadCpi c m | c -> m where
+class (MonadThrow m, MonadLog (WithSeverity Text) m, System m) => MonadCpi c m | c -> m where
   parseConfig :: ByteString -> m c
   createStemcell :: FilePath -> StemcellProperties -> Cpi c m StemcellId
   createVm :: AgentId -> StemcellId -> VmProperties -> Networks
