@@ -105,7 +105,7 @@ handleRequest request@Request{
 
 newtype (Monad m, MonadCpi c m, System m) => Cpi c m a = Cpi {
   unCpi :: ReaderT c m a
-} deriving (Functor, Applicative, Monad, MonadReader c, MonadThrow, MonadTrans)
+} deriving (Functor, Applicative, Monad, MonadReader c, MonadThrow, MonadCatch, MonadTrans)
 
 runCpi :: MonadCpi c m => c -> Cpi c m a -> m a
 runCpi config cpi = unCpi cpi `runReaderT` config
