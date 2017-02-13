@@ -100,7 +100,7 @@ handleRequest request@Request{
             <$> parseArgument vmId
             <*> parseArgument diskId
         return $ createSuccess (Id "")
-      _ -> throwM $ CloudError ("Unknown method call '" <> method <> "'")
+      _ -> throwM $ NotImplemented ("Unknown method call '" <> method <> "'")
 
 
 newtype (Monad m, MonadCpi c m, System m) => Cpi c m a = Cpi {

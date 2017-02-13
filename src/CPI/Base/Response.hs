@@ -7,9 +7,11 @@ module CPI.Base.Response(
 
 import           CPI.Base.Errors
 
+import           Control.Exception.Safe
 import           Data.Aeson.Types
 import           Data.Semigroup
-import           Data.Text        (Text)
+import           Data.Text              (Text)
+import qualified Data.Text              as Text
 
 data Response =  Response {
     responseResult :: Maybe ResultType
@@ -34,14 +36,31 @@ createSuccess result = Response {
     , responseError = Nothing
   }
 
-createFailure :: CloudError -> Response
-createFailure (CloudError message) = Response {
+createFailure :: SomeException -> Response
+createFailure e = case fromException e of
+  (Just (CloudError message)) -> Response {
       responseResult = Nothing
     , responseError = Just CpiError {
           errorType = "Bosh::Clouds::CloudError"
         , errorMessage = message
         , okToRetry = False
+      }
   }
+  (Just (NotImplemented message)) -> Response {
+      responseResult = Nothing
+    , responseError = Just CpiError {
+          errorType = "Bosh::Clouds::NotImplemented"
+        , errorMessage = message
+        , okToRetry = False
+      }
+  }
+  _ -> Response {
+      responseResult = Nothing
+    , responseError = Just CpiError {
+          errorType = "Bosh::Clouds::CloudError"
+        , errorMessage = "Unknown error: '" <> (Text.pack.show) e <> "'"
+        , okToRetry = False
+      }
   }
 
 data CpiError = CpiError {

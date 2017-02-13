@@ -84,6 +84,20 @@ spec = do
     context "when an exception is thrown" $ do
       it "should write an error response" $ do
         let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
+            handler request = throwM $ DummyException "BOOM!!!"
+        result <- runTestOutput input (runRequest handler)
+        (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|
+          {
+            "result" : null,
+            "error" : {
+              "type" : "Bosh::Clouds::CloudError",
+              "message" : "Unknown error: 'DummyException \"BOOM!!!\"'",
+              "ok_to_retry" : false
+            }
+          }|]
+    context "when a CloudError is thrown" $ do
+      it "should write an error response" $ do
+        let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
             handler request = throwM $ CloudError "BOOM!!!"
         result <- runTestOutput input (runRequest handler)
         (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|
@@ -91,6 +105,20 @@ spec = do
             "result" : null,
             "error" : {
               "type" : "Bosh::Clouds::CloudError",
+              "message" : "BOOM!!!",
+              "ok_to_retry" : false
+            }
+          }|]
+    context "when a NotImplemented is thrown" $ do
+      it "should write an error response" $ do
+        let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
+            handler request = throwM $ NotImplemented "BOOM!!!"
+        result <- runTestOutput input (runRequest handler)
+        (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|
+          {
+            "result" : null,
+            "error" : {
+              "type" : "Bosh::Clouds::NotImplemented",
               "message" : "BOOM!!!",
               "ok_to_retry" : false
             }
@@ -110,11 +138,11 @@ spec = do
       , requestContext = HashMap.empty
     }
     context "when message is unknown" $ do
-      it "should throw a CloudError" $ do
+      it "should throw 'NotImplemented'" $ do
         let request' = request {
           requestMethod = "unknown_cpi_method"
         }
-        CloudError message <- runError () (runCpi HandleConfig (handleRequest request'))
+        NotImplemented message <- runError () (runCpi HandleConfig (handleRequest request'))
         message `shouldBe` "Unknown method call 'unknown_cpi_method'"
     context "when message is 'create_stemcell'" $ do
       it "should run 'createStemcell'" $ do

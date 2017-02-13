@@ -2,7 +2,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module CPI.Base.TestSupport(
-    TestConfig(..)
+    DummyException(..)
+  , TestConfig(..)
   , TestInput(..)
   , mkTestInput
   , TestOutput(..)
@@ -27,6 +28,12 @@ import           Data.ByteString        (ByteString)
 import qualified Data.ByteString        as ByteString hiding (unpack)
 import           Data.Text              (Text)
 import           Test.Hspec
+
+
+data DummyException = DummyException Text
+  deriving (Eq, Show, Typeable)
+
+instance Exception DummyException
 
 data TestConfig = TestConfig ByteString deriving(Eq, Show)
 

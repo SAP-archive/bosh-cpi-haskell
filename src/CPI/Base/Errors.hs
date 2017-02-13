@@ -7,7 +7,9 @@ import           Control.Exception      (Exception)
 import           Control.Exception.Safe
 import           Data.Text              (Text)
 
-data CloudError = CloudError Text
+data CloudError =
+    CloudError Text
+  | NotImplemented Text
     deriving (Typeable, Show, Eq)
 
 instance Exception CloudError
