@@ -77,7 +77,7 @@ makeLenses ''Disks
 makeLenses ''Network
 makeLenses ''Vm
 
-$(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''AgentSettings)
+$(deriveJSON defaultOptions{fieldLabelModifier = \label -> if label == "_agentId" then "agent_id" else drop 1 label} ''AgentSettings)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Blobstore)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Disks)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Network)

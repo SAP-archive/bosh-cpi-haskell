@@ -23,7 +23,7 @@ spec = do
     it "should parse settings" $ do
       let input = [r|
       {
-        "agentId": "agent-id",
+        "agent_id": "agent-id",
         "blobstore": {},
         "disks": {
           "system": "/dev/vda",
@@ -61,7 +61,7 @@ spec = do
     it "parsing and then rendering should yield the original settings" $ do
       let Success settings = fromJSON [aesonQQ|
         {
-          "agentId": "agent-xxxxxx",
+          "agent_id": "agent-xxxxxx",
           "blobstore": {
             "provider": "local",
             "options": {
@@ -108,7 +108,7 @@ spec = do
 
 Success defaultSettings = fromJSON [aesonQQ|
   {
-    "agentId": "agent-xxxxxx",
+    "agent_id": "agent-xxxxxx",
     "blobstore": {},
     "disks": {
       "system": "/dev/xvda",
