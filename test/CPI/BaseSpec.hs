@@ -180,7 +180,7 @@ spec = do
                             (VmProperties $ Object $ HashMap.empty)
                             (Networks $ Object $ HashMap.empty)
                             ([])
-                            (Environment $ Object $ HashMap.empty)
+                            (Environment $ HashMap.empty)
                            ]
     context "when message is 'has_vm'" $ do
       it "should run 'hasVm'" $ do

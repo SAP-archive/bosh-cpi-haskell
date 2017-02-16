@@ -49,7 +49,7 @@ spec = do
                 , _ephemeral = Just "/var/vcap/data"
                 , _persistent = HashMap.singleton "disk1" "/var/vcap/bosh/persistent/disk1"
               }
-            , _env = HashMap.empty
+            , _env = Environment HashMap.empty
             , _networks = HashMap.empty
             , _ntp = []
             , _mbus = "mbus"

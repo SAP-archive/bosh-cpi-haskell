@@ -49,8 +49,8 @@ parseSettings raw =
 data AgentSettings = AgentSettings {
     _agentId      :: AgentId
   , _blobstore    :: Blobstore
-  , _env          :: HashMap Text Text
   , _disks        :: Disks
+  , _env          :: Environment
   , _networks     :: HashMap Text Network
   , _ntp          :: [Text]
   , _mbus         :: Text
