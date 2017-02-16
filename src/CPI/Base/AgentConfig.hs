@@ -49,8 +49,8 @@ parseSettings raw =
 data AgentSettings = AgentSettings {
     _agentId      :: AgentId
   , _blobstore    :: Blobstore
-  , _disks        :: Maybe Disks
   , _env          :: HashMap Text Text
+  , _disks        :: Disks
   , _networks     :: HashMap Text Network
   , _ntp          :: [Text]
   , _mbus         :: Text
@@ -85,7 +85,7 @@ $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Vm)
 
 -- TODO we should use DiskId instead of Text
 addPersistentDisk :: AgentSettings -> Text -> Text -> AgentSettings
-addPersistentDisk settings diskId path = settings & disks._Just.persistent.at diskId.non "" .~ path
+addPersistentDisk settings diskId path = settings & disks.persistent.at diskId.non "" .~ path
   -- Example settings.json
   -- {
   --   "agent_id": "agent-xxxxxx",

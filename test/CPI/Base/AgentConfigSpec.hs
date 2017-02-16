@@ -44,7 +44,7 @@ spec = do
       settings `shouldBe` AgentSettings {
               _agentId = AgentId "agent-id"
             , _blobstore = Blobstore HashMap.empty
-            , _disks = Just Disks {
+            , _disks = Disks {
                   _system = "/dev/vda"
                 , _ephemeral = Just "/var/vcap/data"
                 , _persistent = HashMap.singleton "disk1" "/var/vcap/bosh/persistent/disk1"
@@ -104,14 +104,14 @@ spec = do
   describe "addPersistentDisk" $ do
      it "should add a persistent disk" $ do
        let diskSettings = addPersistentDisk defaultSettings "disk1" "/var/vcap/store"
-       diskSettings ^. disks._Just.persistent.at "disk1"._Just `shouldBe` "/var/vcap/store"
+       diskSettings ^. disks.persistent.at "disk1"._Just `shouldBe` "/var/vcap/store"
 
 Success defaultSettings = fromJSON [aesonQQ|
   {
     "agent_id": "agent-xxxxxx",
     "blobstore": {},
     "disks": {
-      "system": "/dev/xvda",
+      "system": "/dev/sda",
       "ephemeral": "/dev/sdb",
       "persistent": {}
     },
