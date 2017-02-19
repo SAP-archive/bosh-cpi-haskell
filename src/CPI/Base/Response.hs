@@ -20,9 +20,9 @@ data Response =  Response {
 
 instance ToJSON Response where
     toJSON (Response responseResult responseError) =
-        object ["result" .= responseResult, "error" .= responseError]
+        object ["result" .= responseResult, "error" .= responseError, "log" .= (""::Text)]
     toEncoding (Response responseResult responseError) =
-        pairs ("result" .= responseResult <> "error" .= responseError)
+        pairs ("result" .= responseResult <> "error" .= responseError <> "log" .= (""::Text))
 
 data ResultType = Id Text | Boolean Bool deriving (Eq, Show)
 

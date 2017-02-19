@@ -73,14 +73,14 @@ spec = do
             handler request =
               pure $ createSuccess $ Id "id"
         result <- runTestOutput input (runRequest handler)
-        (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|{"result":"id", error:null}|]
+        (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|{"result":"id", error:null, "log":""}|]
     context "when the result type is a boolean" $ do
       it "should write the response" $ do
         let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
             handler request =
               pure $ createSuccess $ Boolean True
         result <- runTestOutput input (runRequest handler)
-        (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|{"result":true, error:null}|]
+        (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|{"result":true, error:null, "log":""}|]
     context "when an exception is thrown" $ do
       it "should write an error response" $ do
         let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
@@ -93,7 +93,8 @@ spec = do
               "type" : "Bosh::Clouds::CloudError",
               "message" : "Unknown error: 'DummyException \"BOOM!!!\"'",
               "ok_to_retry" : false
-            }
+            },
+            "log" : ""
           }|]
     context "when a CloudError is thrown" $ do
       it "should write an error response" $ do
@@ -107,7 +108,8 @@ spec = do
               "type" : "Bosh::Clouds::CloudError",
               "message" : "BOOM!!!",
               "ok_to_retry" : false
-            }
+            },
+            "log" : ""
           }|]
     context "when a NotImplemented is thrown" $ do
       it "should write an error response" $ do
@@ -121,7 +123,8 @@ spec = do
               "type" : "Bosh::Clouds::NotImplemented",
               "message" : "BOOM!!!",
               "ok_to_retry" : false
-            }
+            },
+            "log" : ""
           }|]
     it "provides logging facilities" $ do
       let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
