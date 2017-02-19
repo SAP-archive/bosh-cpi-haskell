@@ -16,7 +16,7 @@ import           Data.Text           (Text)
 newtype AgentId = AgentId Text
     deriving (Eq, Show, FromJSON, ToJSON)
 
-newtype Environment = Environment (HashMap Text Text)
+newtype Environment = Environment (HashMap Text Value)
     deriving (Eq, Show, FromJSON, ToJSON)
 
 makeWrapped ''AgentId

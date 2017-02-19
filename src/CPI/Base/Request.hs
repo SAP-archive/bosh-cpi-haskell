@@ -24,11 +24,12 @@ import           CPI.Base.System
 import           Prelude                hiding (readFile)
 
 import           Data.ByteString        (ByteString)
-import           Data.ByteString.Lazy   (fromStrict)
+import           Data.ByteString.Lazy   (fromStrict, toStrict)
 import           Data.HashMap.Strict    (HashMap)
 import           Data.Semigroup
 import           Data.Text              (Text)
 import qualified Data.Text              as Text
+import           Data.Text.Encoding     (decodeUtf8)
 
 import           Data.Aeson
 import           Data.Aeson.Types
@@ -58,7 +59,7 @@ instance FromJSON Request where
 parseArgument :: (MonadThrow m, FromJSON a) => Value -> m a
 parseArgument input = case fromJSON input of
   Success a -> return a
-  Error msg -> throwM (CloudError $ "Could not parse: '" <> Text.pack msg <> "'")
+  Error msg -> throwM (CloudError $ "Could not parse value '" <> decodeUtf8 (toStrict $ encode input) <> "': '" <> Text.pack msg <> "'")
 
 newtype StemcellId = StemcellId Text deriving (Eq, Show, FromJSON, ToJSON)
 newtype VolumeId = VolumeId Text deriving (Eq, Show, FromJSON, ToJSON)
