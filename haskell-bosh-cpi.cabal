@@ -25,6 +25,7 @@ library
                      , CPI.Base.Request
                      , CPI.Base.Response
                      , CPI.Base.System
+                     , Aeson.Helpers
   build-depends:       base >= 4.7 && < 5
                      , text
                      , bytestring
