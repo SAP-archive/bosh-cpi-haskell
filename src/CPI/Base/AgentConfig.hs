@@ -22,6 +22,8 @@ module CPI.Base.AgentConfig(
   , name
   , trustedCerts
   , parseSettings
+  , initialAgentSettings
+  , parseValue
   , addPersistentDisk
 ) where
 
@@ -35,16 +37,10 @@ import           Data.Aeson.TH
 import           Data.ByteString        (ByteString)
 import           Data.ByteString.Lazy   (fromStrict)
 import           Data.HashMap.Strict    (HashMap)
+import qualified Data.HashMap.Strict    as HashMap
 import           Data.Semigroup
 import           Data.Text              (Text)
 import qualified Data.Text              as Text
-
-parseSettings :: (MonadThrow m) => ByteString -> m AgentSettings
-parseSettings raw =
-  either
-    (\msg -> throw $ CloudError $ "Could not parse agent settings " <> Text.pack msg)
-    return
-    (eitherDecode' $ fromStrict raw)
 
 data AgentSettings = AgentSettings {
     _agentId      :: AgentId
@@ -60,13 +56,16 @@ data AgentSettings = AgentSettings {
 
 newtype Blobstore = Blobstore (HashMap Text Value)
     deriving (Eq, Show)
+
 data Disks = Disks {
     _system     :: Text
   , _ephemeral  :: Maybe Text
   , _persistent :: HashMap Text Text
 } deriving (Eq, Show)
+
 newtype Network = Network (HashMap Text Value)
     deriving (Eq, Show)
+
 data Vm = Vm {
   _name :: Text
 } deriving (Eq, Show)
@@ -82,6 +81,37 @@ $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Blobstore)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Disks)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Network)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Vm)
+
+
+parseSettings :: (MonadThrow m) => ByteString -> m AgentSettings
+parseSettings raw =
+  either
+    (\msg -> throw $ CloudError $ "Could not parse agent settings " <> Text.pack msg)
+    return
+    (eitherDecode' $ fromStrict raw)
+
+initialAgentSettings :: AgentId -> Blobstore -> Environment -> [Text] -> Text -> AgentSettings
+initialAgentSettings agentId blobstore env ntp mbus =
+  AgentSettings {
+      _agentId = agentId
+    , _blobstore = blobstore
+    , _disks = Disks {
+        _system = "/dev/sda"
+      , _ephemeral = Nothing
+      , _persistent = HashMap.empty
+    }
+    , _env = env
+    , _networks = HashMap.empty
+    , _ntp = ntp
+    , _mbus = mbus
+    , _vm = Vm $ Unwrapped agentId
+    , _trustedCerts = Nothing
+  }
+
+parseValue :: (FromJSON a, MonadThrow m) => Text -> Value -> m a
+parseValue name raw = case fromJSON raw of
+  Success value -> pure value
+  Error msg -> throwM $ CloudError $ "Could not parse '" <> name <> "': " <> Text.pack msg
 
 -- TODO we should use DiskId instead of Text
 addPersistentDisk :: AgentSettings -> Text -> Text -> AgentSettings

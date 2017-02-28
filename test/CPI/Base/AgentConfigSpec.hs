@@ -97,7 +97,7 @@ spec = do
           "trusted_certs": null
         }
         |]
-      let settingsSerialized = toStrict $ encode $ settings
+      let settingsSerialized = toStrict $ encode settings
       settingsDeserialized <- parseSettings settingsSerialized
       settingsDeserialized `shouldBe` settings
 
