@@ -106,6 +106,11 @@ spec = do
        let diskSettings = addPersistentDisk defaultSettings "disk1" "/var/vcap/store"
        diskSettings ^. disks.persistent.at "disk1"._Just `shouldBe` "/var/vcap/store"
 
+  describe "removePersistentDisk" $ do
+     it "should remove a persistent disk" $ do
+       let diskSettings = removePersistentDisk settingsWithDisk "disk1"
+       diskSettings ^. disks.persistent.at "disk1" `shouldBe` Nothing
+
 Success defaultSettings = fromJSON [aesonQQ|
   {
     "agent_id": "agent-xxxxxx",
@@ -114,6 +119,25 @@ Success defaultSettings = fromJSON [aesonQQ|
       "system": "/dev/sda",
       "ephemeral": "/dev/sdb",
       "persistent": {}
+    },
+    "env": {},
+    "networks": {},
+    "ntp": [],
+    "mbus": "nats://nats:nats-password@yy.yy.yyy:4222",
+    "vm": {"name": "vm-yyyy"}
+  }
+  |]
+
+Success settingsWithDisk = fromJSON [aesonQQ|
+  {
+    "agent_id": "agent-xxxxxx",
+    "blobstore": {},
+    "disks": {
+      "system": "/dev/sda",
+      "ephemeral": "/dev/sdb",
+      "persistent": {
+        "disk1": "/var/vcap/store"
+      }
     },
     "env": {},
     "networks": {},
