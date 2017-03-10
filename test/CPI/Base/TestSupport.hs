@@ -90,14 +90,16 @@ instance Monoid TestOutput where
   mempty = TestOutput ByteString.empty ByteString.empty
   mappend (TestOutput leftStdout leftStderr) (TestOutput rightStdout rightStderr) = TestOutput (leftStdout `mappend` rightStdout) (leftStderr `mappend` rightStderr)
 
-instance System (TestSystem TestInput TestOutput) where
-  arguments = args <$> ask
+instance FileSystem (TestSystem TestInput TestOutput) where
   readFile path = do
     input <- ask
     let expectedPath = (head.args) input
     if path == expectedPath
       then pure $ fileContent input
       else error "Unexpected argument for function call to `readFile`"
+
+instance System (TestSystem TestInput TestOutput) where
+  arguments = args <$> ask
   readStdin = do
     input <- ask
     pure $ stdinContent input

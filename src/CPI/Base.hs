@@ -110,9 +110,11 @@ newtype (Monad m, MonadCpi c m, System m) => Cpi c m a = Cpi {
 runCpi :: MonadCpi c m => c -> Cpi c m a -> m a
 runCpi config cpi = unCpi cpi `runReaderT` config
 
+instance (FileSystem m) => FileSystem (Cpi c m) where
+  readFile = lift.readFile
+
 instance (System m) => System (Cpi c m) where
   arguments = lift arguments
-  readFile = lift.readFile
   readStdin = lift readStdin
   writeStdout = lift.writeStdout
   writeStderr = lift.writeStderr

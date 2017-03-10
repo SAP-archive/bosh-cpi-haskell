@@ -329,4 +329,5 @@ instance MonadCpi HandleConfig (TestSystem () [CpiCall]) where
     lift $ tell [DetachDisk a b]
     pure ()
 
+instance FileSystem (TestSystem () [CpiCall])
 instance System (TestSystem () [CpiCall])

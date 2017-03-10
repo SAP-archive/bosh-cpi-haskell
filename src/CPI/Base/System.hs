@@ -3,6 +3,7 @@
 
 module CPI.Base.System(
     System(..)
+  , FileSystem(..)
   , loadConfig
   , readRequest
   , writeResponse
@@ -25,16 +26,20 @@ import           Control.Monad.Log
 import           System.IO                    (stderr)
 import           Text.PrettyPrint.Leijen.Text (Doc, text)
 
-class MonadThrow m => System m where
-  arguments :: m [Text]
+class MonadThrow m => FileSystem m where
   readFile :: Text -> m ByteString
+
+class (MonadThrow m, FileSystem m) => System m where
+  arguments :: m [Text]
   readStdin :: m ByteString
   writeStdout :: ByteString -> m ()
   writeStderr :: ByteString -> m ()
 
+instance FileSystem IO where
+  readFile = ByteString.readFile . Text.unpack
+
 instance System IO where
   arguments = getArgs >>= pure . fmap Text.pack
-  readFile = ByteString.readFile . Text.unpack
   readStdin = ByteString.getContents
   writeStdout = ByteString.putStr
   writeStderr = ByteString.hPutStr stderr
