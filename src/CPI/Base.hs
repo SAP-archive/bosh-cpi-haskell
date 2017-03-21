@@ -59,6 +59,10 @@ handleRequest request@Request{
                           <$> parseArgument filePath
                           <*> parseArgument cloudProperties
         return $ createSuccess $ Id stemcellId
+      ("delete_stemcell", [stemcellId]) -> do
+        join $ deleteStemcell
+            <$> parseArgument stemcellId
+        return $ createSuccess (Id "")
       ("create_vm", [agentId, stemcellId, vmProperties, networks, diskLocality, environment]) -> do
         VmId vmCid <- join $ createVm
                      <$> parseArgument agentId
@@ -122,6 +126,7 @@ instance (System m) => System (Cpi c m) where
 class (MonadThrow m, MonadLog (WithSeverity Text) m, System m) => MonadCpi c m | c -> m where
   parseConfig :: ByteString -> m c
   createStemcell :: FilePath -> StemcellProperties -> Cpi c m StemcellId
+  deleteStemcell :: StemcellId -> Cpi c m ()
   createVm :: AgentId -> StemcellId -> VmProperties -> Networks
               -> DiskLocality -> Environment -> Cpi c m VmId
   hasVm :: VmId -> Cpi c m Bool

@@ -162,6 +162,19 @@ spec = do
                             ("/path/to/stemcell")
                             (StemcellProperties $ Object $ HashMap.empty)
                            ]
+    context "when message is 'delete_stemcell'" $ do
+      it "should run 'deleteStemcell'" $ do
+        let request' = request {
+            requestMethod = "delete_stemcell"
+          , requestArguments = [
+              String "stemcell-id"
+          ]
+        }
+        (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
+        (fromJust.responseResult) response `shouldBe` Id ""
+        output `shouldBe` [DeleteStemcell
+                            (StemcellId "stemcell-id")
+                           ]
     context "when message is 'create_vm'" $ do
       it "should run 'createVm'" $ do
         let request' = request {
@@ -289,6 +302,7 @@ data HandleConfig = HandleConfig
 type HandleOutput = [SingleOutput]
 data SingleOutput = S Text deriving (Eq, Show)
 data CpiCall = CreateStemcell FilePath StemcellProperties
+             | DeleteStemcell StemcellId
              | CreateVm AgentId StemcellId VmProperties Networks DiskLocality Environment
              | HasVm VmId
              | DeleteVm VmId
@@ -304,6 +318,9 @@ instance MonadCpi HandleConfig (TestSystem () [CpiCall]) where
   createStemcell a b = do
     lift $ tell [CreateStemcell a b]
     pure $ StemcellId "stemcellId"
+  deleteStemcell a = do
+    lift $ tell [DeleteStemcell a]
+    pure ()
   createVm a b c d e f = do
     lift $ tell [CreateVm a b c d e f]
     pure $ VmId "vmId"
