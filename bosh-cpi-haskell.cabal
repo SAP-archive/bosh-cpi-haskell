@@ -1,8 +1,8 @@
-name:                haskell-bosh-cpi
+name:                bosh-cpi-haskell
 version:             0.0.1.0
 synopsis:            A library to build BOSH Cloud Provider Interfaces with Haskell
 description:         Please see README.md
-homepage:            https://github.com/SAP/haskell-bosh-cpi#readme
+homepage:            https://github.com/SAP/bosh-cpi-haskell#readme
 license:             Apache
 license-file:        LICENSE
 author:              Jan von Löwenstein
@@ -38,7 +38,7 @@ library
                      , wl-pprint-text
   default-language:    Haskell2010
 
-test-suite haskell-bosh-cpi-test
+test-suite unit
   default-extensions:  OverloadedStrings
                      , GeneralizedNewtypeDeriving
   type:                exitcode-stdio-1.0
@@ -61,7 +61,7 @@ test-suite haskell-bosh-cpi-test
                      , either
                      , safe-exceptions
                      , raw-strings-qq
-                     , haskell-bosh-cpi
+                     , bosh-cpi-haskell
                      , logging-effect
                      , wl-pprint-text
                      , vector
