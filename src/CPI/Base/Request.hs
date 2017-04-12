@@ -1,4 +1,8 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module CPI.Base.Request(
     Request(..)
@@ -31,6 +35,7 @@ import           Data.Text              (Text)
 import qualified Data.Text              as Text
 import           Data.Text.Encoding     (decodeUtf8)
 
+import           Control.Lens
 import           Data.Aeson
 import           Data.Aeson.Types
 
@@ -70,3 +75,5 @@ newtype StemcellProperties = StemcellProperties Value deriving (Eq, Show, FromJS
 newtype DiskProperties = DiskProperties Value deriving (Eq, Show, FromJSON, ToJSON)
 type DiskLocality = [VolumeId]
 newtype Networks = Networks Value deriving (Eq, Show, FromJSON, ToJSON)
+
+makeWrapped ''StemcellId
