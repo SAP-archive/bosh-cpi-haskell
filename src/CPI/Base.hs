@@ -25,19 +25,31 @@ import           CPI.Base.System              as Base
 
 import           Control.Monad.Reader
 
+import           Control.Monad.Arguments
+import           Control.Monad.Console
+import           Control.Monad.FileSystem
+
 import           Data.ByteString              (ByteString)
+import qualified Data.ByteString.Char8        as ByteString
 import           Data.ByteString.Lazy         (toStrict)
 import           Data.HashMap.Strict          as HashMap
 import           Data.Text                    (Text)
+import           Data.Text.Lazy               (fromStrict)
 
 import           Control.Exception.Safe
 import           Data.Aeson
 import           Data.Semigroup
 
 import           Control.Monad.Log
+import           Text.PrettyPrint.Leijen.Text (Doc, text)
 import           Text.PrettyPrint.Leijen.Text hiding ((<$>), (<>))
 
-runRequest :: (MonadCatch m, MonadCpi c m) => (Request -> Cpi c m Response) -> m ()
+runRequest :: ( MonadCatch m
+              , MonadCpi c m
+              , MonadConsole m
+              , MonadFileSystem m
+              , MonadArguments m)
+              => (Request -> Cpi c m Response) -> m ()
 runRequest handleRequest = do
   response <- do
         config <- loadConfig
@@ -106,24 +118,25 @@ handleRequest request@Request{
         return $ createSuccess (Id "")
       _ -> throwM $ NotImplemented ("Unknown method call '" <> method <> "'")
 
-
-newtype (Monad m, MonadCpi c m, System m) => Cpi c m a = Cpi {
+newtype (Monad m, MonadCpi c m) => Cpi c m a = Cpi {
   unCpi :: ReaderT c m a
 } deriving (Functor, Applicative, Monad, MonadReader c, MonadThrow, MonadCatch, MonadTrans)
 
 runCpi :: MonadCpi c m => c -> Cpi c m a -> m a
 runCpi config cpi = unCpi cpi `runReaderT` config
 
-instance (FileSystem m) => FileSystem (Cpi c m) where
+instance MonadArguments m => MonadArguments (Cpi c m) where
+  arguments = lift arguments
+
+instance (MonadFileSystem m) => MonadFileSystem (Cpi c m) where
   readFile = lift.readFile
 
-instance (System m) => System (Cpi c m) where
-  arguments = lift arguments
+instance (MonadConsole m) => MonadConsole (Cpi c m) where
   readStdin = lift readStdin
   writeStdout = lift.writeStdout
   writeStderr = lift.writeStderr
 
-class (MonadThrow m, MonadLog (WithSeverity Text) m, System m) => MonadCpi c m | c -> m where
+class (MonadThrow m, MonadLog (WithSeverity Text) m, MonadConsole m) => MonadCpi c m | c -> m where
   parseConfig :: ByteString -> m c
   createStemcell :: FilePath -> StemcellProperties -> Cpi c m StemcellId
   deleteStemcell :: StemcellId -> Cpi c m ()

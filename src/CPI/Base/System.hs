@@ -2,9 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module CPI.Base.System(
-    System(..)
-  , FileSystem(..)
-  , loadConfig
+    loadConfig
   , readRequest
   , writeResponse
 ) where
@@ -21,42 +19,28 @@ import           Data.Text.Lazy               (fromStrict)
 
 import           System.Environment           (getArgs)
 
+import           Control.Monad.Arguments
+import           Control.Monad.Console
+import           Control.Monad.FileSystem
+
 import           Control.Exception.Safe
 import           Control.Monad.Log
 import           System.IO                    (stderr)
 import           Text.PrettyPrint.Leijen.Text (Doc, text)
 
-class MonadThrow m => FileSystem m where
-  readFile :: Text -> m ByteString
-
-class (MonadThrow m, FileSystem m) => System m where
-  arguments :: m [Text]
-  readStdin :: m ByteString
-  writeStdout :: ByteString -> m ()
-  writeStderr :: ByteString -> m ()
-
-instance FileSystem IO where
-  readFile = ByteString.readFile . Text.unpack
-
-instance System IO where
-  arguments = getArgs >>= pure . fmap Text.pack
-  readStdin = ByteString.getContents
-  writeStdout = ByteString.putStr
-  writeStderr = ByteString.hPutStr stderr
-
 -- TODO can we get rid of this orphan?
-instance (Monad m, System m) => MonadLog (WithSeverity Text) m where
+instance (Monad m, MonadConsole m) => MonadLog (WithSeverity Text) m where
   logMessageFree f = writeStderr $ f (ByteString.pack.show.renderWithSeverity (text.fromStrict))
 
-loadConfig :: (System m) => m ByteString
+loadConfig :: (MonadThrow m, MonadFileSystem m, MonadArguments m) => m ByteString
 loadConfig = do
   args <- arguments
-  if not (null args)
+  if not (Prelude.null args)
     then readFile $ head args
     else throw $ CloudError "No config file location provided"
 
-readRequest :: (System m) => m ByteString
+readRequest :: (MonadConsole m) => m ByteString
 readRequest = readStdin
 
-writeResponse :: (System m) => ByteString -> m ()
+writeResponse :: (MonadConsole m) => ByteString -> m ()
 writeResponse = writeStdout

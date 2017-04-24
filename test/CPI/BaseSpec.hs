@@ -11,6 +11,12 @@ import           CPI.Base
 import           CPI.Base.TestSupport
 import           Test.Hspec
 
+import           Control.Monad.Arguments
+import           Control.Monad.Console
+import           Control.Monad.FileSystem
+import           Control.Monad.Stub.Console
+import           Control.Monad.Stub.StubMonad
+
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Either
 import           Control.Monad.Writer
@@ -18,15 +24,15 @@ import           Data.Either
 import           Data.Maybe
 
 import           Data.Aeson
-import           Data.ByteString            (ByteString)
-import qualified Data.ByteString            as ByteString hiding (unpack)
-import qualified Data.ByteString.Char8      as ByteString
-import           Data.ByteString.Lazy       (fromStrict, toStrict)
-import           Data.HashMap.Strict        (HashMap)
-import qualified Data.HashMap.Strict        as HashMap
-import           Data.Text                  (Text)
-import qualified Data.Text                  as Text
-import           Data.Vector                as Vector
+import           Data.ByteString              (ByteString)
+import qualified Data.ByteString              as ByteString hiding (unpack)
+import qualified Data.ByteString.Char8        as ByteString
+import           Data.ByteString.Lazy         (fromStrict, toStrict)
+import           Data.HashMap.Strict          (HashMap)
+import qualified Data.HashMap.Strict          as HashMap
+import           Data.Text                    (Text)
+import qualified Data.Text                    as Text
+import           Data.Vector                  as Vector hiding ((++))
 
 import           Data.Aeson.QQ
 
@@ -38,24 +44,24 @@ spec :: Spec
 spec = do
   describe "runRequest" $ do
     let input = mkTestInput {
-            args = [""]
-          , fileContent = ""
+            args = ["config"]
           , stdinContent = "{\"method\":\"testMethod\",\"arguments\":[],\"context\":{}}"}
+        state = mkTestState
     it "provides parsed configuration via reader" $ do
-      let input' = input {
-            fileContent = "content"
+      let state' = state {
+            fileSystem = HashMap.singleton "config" "content"
           }
-          handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
+          handler :: Request -> Cpi TestConfig (StubT TestInput TestState TestOutput IO) Response
           handler request = do
             config <- ask
             if config /= TestConfig "content"
               -- TODO expectation does not belong here. How can be bring it to the outside?
               then throw $ CloudError $ ("Unexpected configuration " <> (Text.pack (show config)))
               else pure $ createSuccess $ Id "id"
-      result <- runTestResult input' (runRequest handler)
+      result <- runStubTResult input state' (runRequest handler)
       result `shouldBe` ()
     it "should read and parse the request" $ do
-      let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
+      let handler :: Request -> Cpi TestConfig (StubT TestInput TestState TestOutput IO) Response
           handler request = do
             if request /= Request {
                               requestMethod = "testMethod"
@@ -65,27 +71,27 @@ spec = do
               -- TODO expectation does not belong here. How can be bring it to the outside?
               then throw $ CloudError $ ("Unexpected request " <> (Text.pack $ show request))
               else pure $ createSuccess $ Id "id"
-      result <- runTestResult input (runRequest handler)
+      result <- runStubTResult input state (runRequest handler)
       result `shouldBe` ()
     context "when the result type is a string" $ do
       it "should write the response" $ do
-        let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
+        let handler :: Request -> Cpi TestConfig (StubT TestInput TestState TestOutput IO) Response
             handler request =
               pure $ createSuccess $ Id "id"
-        result <- runTestOutput input (runRequest handler)
+        result <- runStubTOutput input state (runRequest handler)
         (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|{"result":"id", error:null, "log":""}|]
     context "when the result type is a boolean" $ do
       it "should write the response" $ do
-        let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
+        let handler :: Request -> Cpi TestConfig (StubT TestInput TestState TestOutput IO) Response
             handler request =
               pure $ createSuccess $ Boolean True
-        result <- runTestOutput input (runRequest handler)
+        result <- runStubTOutput input state (runRequest handler)
         (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|{"result":true, error:null, "log":""}|]
     context "when an exception is thrown" $ do
       it "should write an error response" $ do
-        let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
+        let handler :: Request -> Cpi TestConfig (StubT TestInput TestState TestOutput IO) Response
             handler request = throwM $ DummyException "BOOM!!!"
-        result <- runTestOutput input (runRequest handler)
+        result <- runStubTOutput input state (runRequest handler)
         (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|
           {
             "result" : null,
@@ -98,9 +104,9 @@ spec = do
           }|]
     context "when a CloudError is thrown" $ do
       it "should write an error response" $ do
-        let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
+        let handler :: Request -> Cpi TestConfig (StubT TestInput TestState TestOutput IO) Response
             handler request = throwM $ CloudError "BOOM!!!"
-        result <- runTestOutput input (runRequest handler)
+        result <- runStubTOutput input state (runRequest handler)
         (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|
           {
             "result" : null,
@@ -113,9 +119,9 @@ spec = do
           }|]
     context "when a NotImplemented is thrown" $ do
       it "should write an error response" $ do
-        let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
+        let handler :: Request -> Cpi TestConfig (StubT TestInput TestState TestOutput IO) Response
             handler request = throwM $ NotImplemented "BOOM!!!"
-        result <- runTestOutput input (runRequest handler)
+        result <- runStubTOutput input state (runRequest handler)
         (eitherDecode'.fromStrict.stdout) result `shouldBe` Right [aesonQQ|
           {
             "result" : null,
@@ -127,11 +133,11 @@ spec = do
             "log" : ""
           }|]
     it "provides logging facilities" $ do
-      let handler :: Request -> Cpi TestConfig (TestSystem TestInput TestOutput) Response
+      let handler :: Request -> Cpi TestConfig (StubT TestInput TestState TestOutput IO) Response
           handler request = do
             logDebug "test debug message"
             pure $ createSuccess $ Id "id"
-      result <- runTestOutput input (runRequest handler)
+      result <- runStubTOutput input state (runRequest handler)
       ByteString.unpack (stderr result) `shouldContain` "test debug message"
 
   describe "handleRequest" $ do
@@ -145,8 +151,10 @@ spec = do
         let request' = request {
           requestMethod = "unknown_cpi_method"
         }
-        NotImplemented message <- runError () (runCpi HandleConfig (handleRequest request'))
-        message `shouldBe` "Unknown method call 'unknown_cpi_method'"
+        result <- try( runStubT () () (runCpi HandleConfig (handleRequest request')) )
+        case result of
+          Right (result, _, _::[CpiCall]) -> error $ "Unexpected result of `runTestResult`: " ++ show result
+          Left err     -> err `shouldBe` NotImplemented "Unknown method call 'unknown_cpi_method'"
     context "when message is 'create_stemcell'" $ do
       it "should run 'createStemcell'" $ do
         let request' = request {
@@ -156,7 +164,7 @@ spec = do
             , Object HashMap.empty
           ]
         }
-        (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
+        (response, state, output) <- runStubT () () (runCpi HandleConfig (handleRequest request'))
         (fromJust.responseResult) response `shouldBe` Id "stemcellId"
         output `shouldBe` [CreateStemcell
                             ("/path/to/stemcell")
@@ -170,7 +178,7 @@ spec = do
               String "stemcell-id"
           ]
         }
-        (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
+        (response, state, output) <- runStubT () () (runCpi HandleConfig (handleRequest request'))
         (fromJust.responseResult) response `shouldBe` Id ""
         output `shouldBe` [DeleteStemcell
                             (StemcellId "stemcell-id")
@@ -188,7 +196,7 @@ spec = do
             , Object HashMap.empty
           ]
         }
-        (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
+        (response, state, output) <- runStubT () () (runCpi HandleConfig (handleRequest request'))
         (fromJust.responseResult) response `shouldBe` Id "vmId"
         output `shouldBe` [CreateVm
                             (AgentId "agent-id")
@@ -206,7 +214,7 @@ spec = do
              String "vm-id"
          ]
        }
-       (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
+       (response, state, output) <- runStubT () () (runCpi HandleConfig (handleRequest request'))
        (fromJust.responseResult) response `shouldBe` Boolean True
        output `shouldBe` [HasVm
                            (VmId "vm-id")
@@ -219,7 +227,7 @@ spec = do
              String "vm-id"
          ]
        }
-       (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
+       (response, state, output) <- runStubT () () (runCpi HandleConfig (handleRequest request'))
        (fromJust.responseResult) response `shouldBe` Id ""
        output `shouldBe` [DeleteVm
                            (VmId "vm-id")
@@ -234,7 +242,7 @@ spec = do
             , String "vm-id"
           ]
         }
-        (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
+        (response, state, output) <- runStubT () () (runCpi HandleConfig (handleRequest request'))
         (fromJust.responseResult) response `shouldBe` Id "diskId"
         output `shouldBe` [CreateDisk
                             (5000)
@@ -249,7 +257,7 @@ spec = do
              String "disk-id"
          ]
        }
-       (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
+       (response, state, output) <- runStubT () () (runCpi HandleConfig (handleRequest request'))
        (fromJust.responseResult) response `shouldBe` Boolean True
        output `shouldBe` [HasDisk
                            (DiskId "disk-id")
@@ -262,7 +270,7 @@ spec = do
              String "disk-id"
          ]
        }
-       (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
+       (response, state, output) <- runStubT () () (runCpi HandleConfig (handleRequest request'))
        (fromJust.responseResult) response `shouldBe` Id ""
        output `shouldBe` [DeleteDisk
                            (DiskId "disk-id")
@@ -276,7 +284,7 @@ spec = do
              , String "disk-id"
          ]
        }
-       (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
+       (response, state, output) <- runStubT () () (runCpi HandleConfig (handleRequest request'))
        (fromJust.responseResult) response `shouldBe` Id ""
        output `shouldBe` [AttachDisk
                            (VmId "vm-id")
@@ -291,12 +299,15 @@ spec = do
              , String "disk-id"
          ]
        }
-       (response, output) <- runTest () (runCpi HandleConfig (handleRequest request'))
+       (response, state, output) <- runStubT () () (runCpi HandleConfig (handleRequest request'))
        (fromJust.responseResult) response `shouldBe` Id ""
        output `shouldBe` [DetachDisk
                            (VmId "vm-id")
                            (DiskId "disk-id")
                           ]
+
+instance MonadCpi TestConfig (StubT TestInput TestState TestOutput IO) where
+  parseConfig raw = pure $ TestConfig raw
 
 data HandleConfig = HandleConfig
 type HandleOutput = [SingleOutput]
@@ -313,7 +324,16 @@ data CpiCall = CreateStemcell FilePath StemcellProperties
              | DetachDisk VmId DiskId
                 deriving (Eq, Show)
 
-instance MonadCpi HandleConfig (TestSystem () [CpiCall]) where
+instance HasStdin () where
+  asStdin = const ""
+
+instance HasStdout [CpiCall] where
+  asStdout _ = []
+
+instance HasStderr [CpiCall] where
+  asStderr _ = []
+
+instance MonadCpi HandleConfig (StubT () () [CpiCall] IO) where
   parseConfig raw = pure HandleConfig
   createStemcell a b = do
     lift $ tell [CreateStemcell a b]
@@ -345,6 +365,3 @@ instance MonadCpi HandleConfig (TestSystem () [CpiCall]) where
   detachDisk a b = do
     lift $ tell [DetachDisk a b]
     pure ()
-
-instance FileSystem (TestSystem () [CpiCall])
-instance System (TestSystem () [CpiCall])

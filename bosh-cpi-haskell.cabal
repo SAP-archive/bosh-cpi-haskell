@@ -26,6 +26,13 @@ library
                      , CPI.Base.Response
                      , CPI.Base.System
                      , Aeson.Helpers
+                     , Control.Monad.Arguments
+                     , Control.Monad.Stub.Arguments
+                     , Control.Monad.Console
+                     , Control.Monad.Stub.Console
+                     , Control.Monad.FileSystem
+                     , Control.Monad.Stub.FileSystem
+                     , Control.Monad.Stub.StubMonad
   build-depends:       base >= 4.7 && < 5
                      , text
                      , bytestring
