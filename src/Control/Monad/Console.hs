@@ -2,12 +2,14 @@ module Control.Monad.Console(
    MonadConsole(..)
 ) where
 
-import           Data.ByteString (ByteString)
-import qualified Data.ByteString as ByteString
+import           Data.ByteString        (ByteString)
+import qualified Data.ByteString        as ByteString
 
-import           System.IO       (stderr)
 
-class (Monad m) => MonadConsole m where
+import           Control.Exception.Safe
+import           System.IO              (stderr)
+
+class (Monad m, MonadThrow m) => MonadConsole m where
   readStdin   :: m ByteString
   writeStdout :: ByteString -> m ()
   writeStderr :: ByteString -> m ()

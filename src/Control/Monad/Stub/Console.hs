@@ -8,6 +8,7 @@ import           Control.Monad.Stub.StubMonad
 
 import           Data.ByteString              (ByteString)
 
+import           Control.Exception.Safe
 import           Control.Monad.Console
 import           Control.Monad.Reader
 import           Control.Monad.State
@@ -22,7 +23,7 @@ class (Monoid a) => HasStdout a where
 class (Monoid a) => HasStderr a where
   asStderr :: ByteString -> a
 
-instance (Monad m, HasStdin c, HasStdout w, HasStderr w) => MonadConsole (StubT c s w m) where
+instance (Monad m, MonadThrow m, HasStdin c, HasStdout w, HasStderr w) => MonadConsole (StubT c s w m) where
   readStdin = asks asStdin
   writeStdout s = tell $ asStdout s
   writeStderr s = tell $ asStderr s
