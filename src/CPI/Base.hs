@@ -28,6 +28,7 @@ import           Control.Monad.Reader
 import           Control.Monad.Arguments
 import           Control.Monad.Console
 import           Control.Monad.FileSystem
+import           Control.Monad.Wait
 
 import           Data.ByteString              (ByteString)
 import qualified Data.ByteString.Char8        as ByteString
@@ -130,6 +131,9 @@ instance MonadArguments m => MonadArguments (Cpi c m) where
 
 instance (MonadFileSystem m) => MonadFileSystem (Cpi c m) where
   readFile = lift.readFile
+
+instance (MonadWait m) => MonadWait (Cpi c m) where
+  wait = lift.wait
 
 instance (MonadConsole m) => MonadConsole (Cpi c m) where
   readStdin = lift readStdin
