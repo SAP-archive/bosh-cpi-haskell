@@ -17,7 +17,7 @@ import           Control.Monad.Writer
 
 newtype StubT r s w m a = StubT {
  unStubT :: ReaderT r (StateT s (WriterT w m)) a
-} deriving (Functor, Applicative, Monad, MonadReader r, MonadState s, MonadWriter w, MonadThrow, MonadCatch)
+} deriving (Functor, Applicative, Monad, MonadReader r, MonadState s, MonadWriter w, MonadThrow, MonadCatch, MonadMask)
 
 instance (Monoid w) => MonadTrans (StubT r s w) where
   lift = StubT . lift . lift . lift
