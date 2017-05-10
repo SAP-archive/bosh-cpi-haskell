@@ -16,12 +16,15 @@ import           Control.Monad.Writer
 
 class HasStdin a where
   asStdin :: a -> ByteString
+  asStdin = const ""
 
 class (Monoid a) => HasStdout a where
   asStdout :: ByteString -> a
+  asStdout = mempty
 
 class (Monoid a) => HasStderr a where
   asStderr :: ByteString -> a
+  asStderr = mempty
 
 instance (Monad m, MonadThrow m, HasStdin c, HasStdout w, HasStderr w) => MonadConsole (StubT c s w m) where
   readStdin = asks asStdin

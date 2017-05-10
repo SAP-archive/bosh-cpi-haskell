@@ -15,6 +15,7 @@ import           Control.Monad.Writer
 
 class HasArguments a where
   asArguments :: a -> [Text]
+  asArguments = const []
 
 instance (Monad m, MonadThrow m, Monoid w, HasArguments c) => MonadArguments (StubT c s w m) where
   arguments = asks asArguments

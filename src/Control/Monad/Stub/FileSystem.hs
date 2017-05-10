@@ -17,6 +17,7 @@ import           Data.Text                    (Text)
 
 class HasFiles a where
   asFiles :: a -> HashMap Text ByteString
+  asFiles = const HashMap.empty
 
 instance (Monad m, MonadThrow m, HasFiles s, Monoid w) => MonadFileSystem (StubT c s w m) where
   readFile path = do
