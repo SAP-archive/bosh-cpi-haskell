@@ -57,6 +57,8 @@ test-suite unit
                      , CPI.Base.RequestSpec
                      , CPI.Base.SystemSpec
                      , CPI.Base.TestSupport
+                     , Control.Monad.WaitSpec
+                     , Control.Monad.TestSupport
   main-is:             Spec.hs
   build-depends:       base
                      , hspec
