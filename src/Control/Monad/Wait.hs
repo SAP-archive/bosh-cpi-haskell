@@ -8,21 +8,22 @@ module Control.Monad.Wait(
   , waitFor
 ) where
 
-
 import           Control.Concurrent     (threadDelay)
 import           Control.Exception.Safe
 import           Control.Monad.Trans
+
+import           Data.Hourglass
 import           Data.Maybe
 
 class (Monad m, MonadThrow m) => MonadWait m where
-  wait :: Int -> m ()
+  wait :: (TimeInterval i) => i -> m ()
 
 instance MonadWait IO where
-  wait = threadDelay
+  wait n = threadDelay $ 1000000 * (fromIntegral . toInteger . toSeconds) n
 
-data WaitConfig = WaitConfig {
+data TimeInterval i => WaitConfig i = WaitConfig {
     retries  :: Retry
-  , interval :: Int
+  , interval :: i
 }
 
 data Retry =
@@ -39,7 +40,7 @@ data Timeout = Timeout deriving (Typeable, Show, Eq)
 
 instance Exception Timeout
 
-waitFor :: (MonadWait m, MonadThrow m) => WaitConfig -> m (Maybe a) -> (a -> Bool) -> m a
+waitFor :: (MonadWait m, MonadThrow m, TimeInterval i) => WaitConfig i -> m (Maybe a) -> (a -> Bool) -> m a
 waitFor waitConfig next predicate =
   go waitConfig 0
     where

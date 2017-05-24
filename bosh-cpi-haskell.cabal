@@ -34,9 +34,13 @@ library
                      , Control.Monad.Stub.FileSystem
                      , Control.Monad.Wait
                      , Control.Monad.Stub.Wait
+                     , Control.Monad.Time
+                     , Control.Monad.Stub.Time
                      , Control.Monad.Stub.StubMonad
   build-depends:       base >= 4.7 && < 5
                      , text
+                     , hourglass
+                     , hashable
                      , bytestring
                      , unordered-containers
                      , aeson
@@ -64,6 +68,7 @@ test-suite unit
                      , hspec
                      , text
                      , bytestring
+                     , hourglass
                      , aeson
                      , aeson-qq
                      , lens
