@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 
 module Control.Monad.TestSupport(
     TestInput(..)
@@ -8,6 +10,7 @@ module Control.Monad.TestSupport(
   , emptyTestOutput
   , TestState(..)
   , emptyTestState
+  , runEffects
 ) where
 
 import           CPI.Base
@@ -34,6 +37,7 @@ import           Data.HashMap.Strict           (HashMap)
 import qualified Data.HashMap.Strict           as HashMap
 import           Data.Hourglass
 import           Data.Text                     (Text)
+import           System.Environment
 import           Test.Hspec
 
 emptyTestState :: TestState
@@ -114,3 +118,13 @@ instance HasWaitCount TestOutput where
   asWaitCount n = emptyTestOutput {
     waitCount = [toSeconds n]
   }
+
+type Effects a = (forall m. (MonadWait m, MonadTime m, MonadIO m) => m a)
+runEffects :: Effects a -> IO a
+runEffects f = do
+  real <- read . fromMaybe "False" <$> lookupEnv "REAL_IO"
+  if real then
+      f
+    else do
+      (result, _, _::TestOutput) <- runStubT emptyTestInput emptyTestState f
+      pure result

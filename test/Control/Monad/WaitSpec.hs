@@ -31,6 +31,16 @@ instance HasTimeline [Text] where
 
 spec :: Spec
 spec = describe "MonadWait" $ do
+  describe "wait" $ do
+    it "should not continue before the specified amount of time passed" $ do
+      void $ runEffects
+        (do
+          timeBefore <- currentTime
+          wait $ Seconds 1
+          timeAfter <- currentTime
+          let timeElapsed = timeAfter `timeDiff` timeBefore
+          liftIO $ timeElapsed >= 1 `shouldBe` True
+        )
   describe "waitFor" $ do
     let getter :: (MonadState [Text] m) => m (Maybe Text)
         getter = do
@@ -79,7 +89,6 @@ spec = describe "MonadWait" $ do
                     pure r)
         length (waitCount output) `shouldBe` 100
         all (== 1) (waitCount output) `shouldBe` True
-
 
 timeout :: Selector Timeout
 timeout Timeout = True
