@@ -6,6 +6,7 @@
 module CPI.Base.Data(
     AgentId(..)
   , Environment(..)
+  , Blobstore(..)
 ) where
 
 import           Control.Lens
@@ -19,5 +20,9 @@ newtype AgentId = AgentId Text
 newtype Environment = Environment (HashMap Text Value)
     deriving (Eq, Show, FromJSON, ToJSON)
 
+newtype Blobstore = Blobstore (HashMap Text Value)
+    deriving (Eq, Show, FromJSON, ToJSON)
+
 makeWrapped ''AgentId
 makeWrapped ''Environment
+makeWrapped ''Blobstore

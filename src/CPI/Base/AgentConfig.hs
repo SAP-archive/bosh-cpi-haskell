@@ -12,7 +12,6 @@ module CPI.Base.AgentConfig(
   , ntp
   , mbus
   , vm
-  , Blobstore(..)
   , Disks(..)
   , system
   , ephemeral
@@ -55,9 +54,6 @@ data AgentSettings = AgentSettings {
   , _trustedCerts :: Maybe Text
 } deriving (Eq, Show)
 
-newtype Blobstore = Blobstore (HashMap Text Value)
-    deriving (Eq, Show)
-
 data Disks = Disks {
     _system     :: Text
   , _ephemeral  :: Maybe Text
@@ -72,13 +68,11 @@ data Vm = Vm {
 } deriving (Eq, Show)
 
 makeLenses ''AgentSettings
-makeLenses ''Blobstore
 makeLenses ''Disks
 makeLenses ''Network
 makeLenses ''Vm
 
 $(deriveJSON defaultOptions{fieldLabelModifier = \label -> if label == "_agentId" then "agent_id" else drop 1 label} ''AgentSettings)
-$(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Blobstore)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Disks)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Network)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Vm)
