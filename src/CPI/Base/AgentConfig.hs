@@ -44,7 +44,7 @@ import qualified Data.Text              as Text
 
 data AgentSettings = AgentSettings {
     _agentId      :: AgentId
-  , _blobstore    :: Blobstore
+  , _blobstore    :: Maybe Blobstore
   , _disks        :: Disks
   , _env          :: Environment
   , _networks     :: HashMap Text Network
@@ -85,7 +85,7 @@ parseSettings raw =
     return
     (eitherDecode' $ fromStrict raw)
 
-initialAgentSettings :: AgentId -> Blobstore -> Environment -> [Text] -> Text -> AgentSettings
+initialAgentSettings :: AgentId -> Maybe Blobstore -> Environment -> [Text] -> Text -> AgentSettings
 initialAgentSettings agentId blobstore env ntp mbus =
   AgentSettings {
       _agentId = agentId
