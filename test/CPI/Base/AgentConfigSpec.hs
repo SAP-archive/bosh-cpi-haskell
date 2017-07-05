@@ -43,7 +43,7 @@ spec = do
       settings <- parseSettings (Data.ByteString.Char8.pack input)
       settings `shouldBe` AgentSettings {
               _agentId = AgentId "agent-id"
-            , _blobstore = Blobstore HashMap.empty
+            , _blobstore = Just $ Blobstore HashMap.empty
             , _disks = Disks {
                   _system = "/dev/vda"
                 , _ephemeral = Just "/var/vcap/data"
