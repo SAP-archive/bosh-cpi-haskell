@@ -40,14 +40,14 @@ data Timeout = Timeout deriving (Typeable, Show, Eq)
 
 instance Exception Timeout
 
-waitFor :: (MonadWait m, MonadThrow m, TimeInterval i) => WaitConfig i -> m (Maybe a) -> (a -> Bool) -> m a
+waitFor :: (MonadWait m, MonadThrow m, TimeInterval i) => WaitConfig i -> m (Maybe a) -> (Maybe a -> Bool) -> m (Maybe a)
 waitFor waitConfig next predicate =
   go waitConfig 0
     where
       go waitConfig n = do
         mResource <- next
-        if isJust mResource && predicate (fromJust mResource)
-          then pure (fromJust mResource)
+        if predicate mResource
+          then pure mResource
           else
             case retries waitConfig of
               Retry m | m < n -> throwM Timeout

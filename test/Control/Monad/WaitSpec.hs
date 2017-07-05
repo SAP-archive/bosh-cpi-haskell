@@ -18,7 +18,7 @@ import           Test.Hspec
 
 import Data.Text (Text)
 
-runStubT' :: TestInput -> [a] -> StubT TestInput [a] TestOutput IO Text -> IO (Text, [a], TestOutput)
+runStubT' :: TestInput -> [a] -> StubT TestInput [a] TestOutput IO (Maybe Text) -> IO (Maybe Text, [a], TestOutput)
 runStubT' = runStubT
 
 instance HasTime [Text] where
@@ -58,8 +58,8 @@ spec = describe "MonadWait" $ do
         (_, _, output) <- runStubT'
                 emptyTestInput
                 (replicate 10 "Not Done" ++ ["Done"])
-                (do r <- waitFor waitConfig getter (== "Done")
-                    lift $ r `shouldBe` "Done"
+                (do r <- waitFor waitConfig getter (== (Just "Done"))
+                    lift $ r `shouldBe` Just "Done"
                     pure r)
         length (waitCount output) `shouldBe` 10
         all (== 1) (waitCount output) `shouldBe` True
@@ -69,7 +69,7 @@ spec = describe "MonadWait" $ do
           r@(_, _, output) <- runStubT'
                 emptyTestInput
                 (repeat "Never Done")
-                (waitFor waitConfig getter (== "Done"))
+                (waitFor waitConfig getter (== (Just "Done")))
           length (waitCount output) `shouldBe` 9
           all (== 1) (waitCount output) `shouldBe` True
           pure r
@@ -84,8 +84,8 @@ spec = describe "MonadWait" $ do
         (_, _, output) <- runStubT'
                 emptyTestInput
                 (replicate 100 "Not Done" ++ ["Done"])
-                (do r <- waitFor waitConfig getter (== "Done")
-                    lift $ r `shouldBe` "Done"
+                (do r <- waitFor waitConfig getter (== (Just "Done"))
+                    lift $ r `shouldBe` Just "Done"
                     pure r)
         length (waitCount output) `shouldBe` 100
         all (== 1) (waitCount output) `shouldBe` True
