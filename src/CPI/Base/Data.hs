@@ -5,6 +5,8 @@
 
 module CPI.Base.Data(
     AgentId(..)
+  , Network(..)
+  , Networks(..)
   , Environment(..)
   , Blobstore(..)
 ) where
@@ -17,6 +19,12 @@ import           Data.Text           (Text)
 newtype AgentId = AgentId Text
     deriving (Eq, Show, FromJSON, ToJSON)
 
+newtype Network = Network (HashMap Text Value)
+    deriving (Eq, Show, FromJSON, ToJSON)
+
+newtype Networks = Networks (HashMap Text Network)
+    deriving (Eq, Show, FromJSON, ToJSON)
+
 newtype Environment = Environment (HashMap Text Value)
     deriving (Eq, Show, FromJSON, ToJSON)
 
@@ -24,5 +32,7 @@ newtype Blobstore = Blobstore (HashMap Text Value)
     deriving (Eq, Show, FromJSON, ToJSON)
 
 makeWrapped ''AgentId
+makeWrapped ''Network
+makeWrapped ''Networks
 makeWrapped ''Environment
 makeWrapped ''Blobstore

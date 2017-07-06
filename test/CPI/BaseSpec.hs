@@ -38,7 +38,9 @@ import           Data.Aeson.QQ
 
 import           Control.Monad.Log
 
+
 import           Control.Exception.Safe
+import           Control.Lens
 
 spec :: Spec
 spec = do
@@ -202,7 +204,7 @@ spec = do
                             (AgentId "agent-id")
                             (StemcellId "stemcell-id")
                             (VmProperties $ Object $ HashMap.empty)
-                            (Networks $ Object $ HashMap.empty)
+                            (Wrapped $ HashMap.empty)
                             ([])
                             (Environment $ HashMap.empty)
                            ]

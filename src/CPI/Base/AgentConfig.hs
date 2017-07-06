@@ -16,7 +16,6 @@ module CPI.Base.AgentConfig(
   , system
   , ephemeral
   , persistent
-  , Network(..)
   , Vm(..)
   , name
   , trustedCerts
@@ -47,7 +46,7 @@ data AgentSettings = AgentSettings {
   , _blobstore    :: Maybe Blobstore
   , _disks        :: Disks
   , _env          :: Environment
-  , _networks     :: HashMap Text Network
+  , _networks     :: Networks
   , _ntp          :: [Text]
   , _mbus         :: Text
   , _vm           :: Vm
@@ -60,9 +59,6 @@ data Disks = Disks {
   , _persistent :: HashMap Text Text
 } deriving (Eq, Show)
 
-newtype Network = Network (HashMap Text Value)
-    deriving (Eq, Show)
-
 data Vm = Vm {
   _name :: Text
 } deriving (Eq, Show)
@@ -74,7 +70,6 @@ makeLenses ''Vm
 
 $(deriveJSON defaultOptions{fieldLabelModifier = \label -> if label == "_agentId" then "agent_id" else drop 1 label} ''AgentSettings)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Disks)
-$(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Network)
 $(deriveJSON defaultOptions{fieldLabelModifier = drop 1} ''Vm)
 
 
@@ -85,8 +80,8 @@ parseSettings raw =
     return
     (eitherDecode' $ fromStrict raw)
 
-initialAgentSettings :: AgentId -> Maybe Blobstore -> Environment -> [Text] -> Text -> AgentSettings
-initialAgentSettings agentId blobstore env ntp mbus =
+initialAgentSettings :: AgentId -> Networks ->  Maybe Blobstore -> Environment -> [Text] -> Text -> AgentSettings
+initialAgentSettings agentId networks blobstore env ntp mbus =
   AgentSettings {
       _agentId = agentId
     , _blobstore = blobstore
@@ -96,7 +91,7 @@ initialAgentSettings agentId blobstore env ntp mbus =
       , _persistent = HashMap.empty
     }
     , _env = env
-    , _networks = HashMap.empty
+    , _networks = networks
     , _ntp = ntp
     , _mbus = mbus
     , _vm = Vm $ Unwrapped agentId

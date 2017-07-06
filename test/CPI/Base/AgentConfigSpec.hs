@@ -33,7 +33,11 @@ spec = do
           }
         },
         "env": {},
-        "networks": {},
+        "networks": {
+          "default": {
+            "type": "dynamic"
+          }
+        },
         "ntp": [],
         "mbus": "mbus",
         "vm": {"name": "vm-name"},
@@ -50,7 +54,7 @@ spec = do
                 , _persistent = HashMap.singleton "disk1" "/var/vcap/bosh/persistent/disk1"
               }
             , _env = Environment HashMap.empty
-            , _networks = HashMap.empty
+            , _networks = Wrapped $ HashMap.singleton "default" (Wrapped $ HashMap.singleton "type" "dynamic")
             , _ntp = []
             , _mbus = "mbus"
             , _vm = Vm {
@@ -101,6 +105,23 @@ spec = do
       settingsDeserialized <- parseSettings settingsSerialized
       settingsDeserialized `shouldBe` settings
 
+  describe "initialSettings" $ do
+    it "should create agent settings with defaults" $ do
+      let initialSettings = initialAgentSettings agentId' networks' blobstore' env' ntp' mbus'
+          agentId' = Wrapped "test-agent"
+          network' = Wrapped $ HashMap.singleton "type" "dynamic"
+          networks' = Wrapped $ HashMap.singleton "default" network'
+          blobstore' = Just $ Wrapped HashMap.empty
+          env' = Environment HashMap.empty
+          ntp' = []
+          mbus' = ""
+      initialSettings ^. agentId `shouldBe` agentId'
+      initialSettings ^. networks `shouldBe` networks'
+      (initialSettings ^. blobstore) `shouldBe` blobstore'
+      initialSettings ^. env `shouldBe` env'
+      initialSettings ^. ntp `shouldBe` ntp'
+      initialSettings ^. mbus `shouldBe` mbus'
+
   describe "addPersistentDisk" $ do
      it "should add a persistent disk" $ do
        let diskSettings = addPersistentDisk defaultSettings "disk1" "/var/vcap/store"
@@ -121,7 +142,11 @@ Success defaultSettings = fromJSON [aesonQQ|
       "persistent": {}
     },
     "env": {},
-    "networks": {},
+    "networks": {
+      "default": {
+        "type": "dynamic"
+      }
+    },
     "ntp": [],
     "mbus": "nats://nats:nats-password@yy.yy.yyy:4222",
     "vm": {"name": "vm-yyyy"}
@@ -140,7 +165,11 @@ Success settingsWithDisk = fromJSON [aesonQQ|
       }
     },
     "env": {},
-    "networks": {},
+    "networks": {
+      "default": {
+        "type": "dynamic"
+      }
+    },
     "ntp": [],
     "mbus": "nats://nats:nats-password@yy.yy.yyy:4222",
     "vm": {"name": "vm-yyyy"}
