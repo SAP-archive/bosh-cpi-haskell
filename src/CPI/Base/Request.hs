@@ -76,3 +76,4 @@ newtype DiskProperties = DiskProperties Value deriving (Eq, Show, FromJSON, ToJS
 type DiskLocality = [VolumeId]
 
 makeWrapped ''StemcellId
+makeWrapped ''VmProperties
