@@ -77,3 +77,5 @@ type DiskLocality = [VolumeId]
 
 makeWrapped ''StemcellId
 makeWrapped ''VmProperties
+makeWrapped ''VmId
+makeWrapped ''DiskId
