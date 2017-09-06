@@ -28,6 +28,8 @@ library
                      , Aeson.Helpers
                      , Control.Monad.Arguments
                      , Control.Monad.Stub.Arguments
+                     , Control.Monad.Environment
+                     , Control.Monad.Stub.Environment
                      , Control.Monad.Console
                      , Control.Monad.Stub.Console
                      , Control.Monad.FileSystem

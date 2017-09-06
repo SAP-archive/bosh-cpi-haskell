@@ -10,7 +10,6 @@ module CPI.Base.TestSupport(
   , mkTestOutput
   , TestState(..)
   , mkTestState
-  , anyCloudError
   , cloudErrorWithMessage
 ) where
 

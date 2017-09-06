@@ -8,7 +8,6 @@ module Control.Monad.Stub.Wait(
 
 import           Control.Exception.Safe
 import           Control.Monad.State
-import           Control.Monad.Time
 import           Control.Monad.Wait
 import           Control.Monad.Writer         hiding ((<>))
 

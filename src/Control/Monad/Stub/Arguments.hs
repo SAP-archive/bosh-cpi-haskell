@@ -8,7 +8,6 @@ import           Control.Monad.Stub.StubMonad
 import           Data.Text                    (Text)
 
 import           Control.Exception.Safe
-import           Control.Monad.Console
 import           Control.Monad.Reader
 import           Control.Monad.State
 import           Control.Monad.Writer
