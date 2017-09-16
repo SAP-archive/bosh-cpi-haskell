@@ -14,6 +14,8 @@ import           Control.Monad.Trans
 
 import           Data.Hourglass
 import           Data.Maybe
+import           Data.Semigroup
+import           Data.Text
 
 class (Monad m, MonadThrow m) => MonadWait m where
   wait :: (TimeInterval i) => i -> m ()
@@ -24,6 +26,7 @@ instance MonadWait IO where
 data TimeInterval i => WaitConfig i = WaitConfig {
     retries  :: Retry
   , interval :: i
+  , message  :: Text
 }
 
 data Retry =
@@ -36,7 +39,7 @@ instance Eq Retry where
   Unlimited == Unlimited = True
   (Retry n) == (Retry m) = n == m
 
-data Timeout = Timeout deriving (Typeable, Show, Eq)
+data Timeout = Timeout Text deriving (Typeable, Show, Eq)
 
 instance Exception Timeout
 
@@ -50,7 +53,7 @@ waitFor waitConfig next predicate =
           then pure mResource
           else
             case retries waitConfig of
-              Retry m | m < n -> throwM Timeout
+              Retry m | m < n -> throwM $ Timeout $ "Waiting for " <> message waitConfig
               _ -> do
                 wait $ interval waitConfig
                 go waitConfig (n + 1)
