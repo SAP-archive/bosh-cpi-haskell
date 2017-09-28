@@ -7,9 +7,9 @@
 
 module CPI.Base(
     module Base
-  , Cpi(..)
-  , runCpi
+  , CpiRunner(..)
   , MonadCpi(..)
+  , CpiConfiguration(..)
   , runRequest
   , handleRequest
 ) where
@@ -45,23 +45,24 @@ import           Control.Monad.Log
 import           Text.PrettyPrint.Leijen.Text (Doc, text)
 import           Text.PrettyPrint.Leijen.Text hiding ((<$>), (<>))
 
-runRequest :: ( MonadCatch m
-              , MonadCpi c m
-              , MonadConsole m
-              , MonadFileSystem m
-              , MonadArguments m)
-              => (Request -> Cpi c m Response) -> m ()
+
+runRequest :: ( Monad m
+                , MonadReader c m
+                , Monad m'
+                , MonadCatch m'
+                , MonadArguments m'
+                , MonadFileSystem m'
+                , CpiConfiguration c m'
+                , CpiRunner c m m' Response) => (Request -> m Response) -> m' ()
 runRequest handleRequest = do
-  response <- do
-        config <- loadConfig
-                  >>= parseConfig
-        request <- readRequest
-                  >>= parseRequest
-        runCpi config (handleRequest request)
-   `catch` (pure.createFailure)
+  let execute = do
+        config <- loadConfig >>= parseConfig
+        request <- readRequest >>= parseRequest
+        config `runCpi` handleRequest request
+  response <- execute `catch` (pure.createFailure)
   writeResponse $ toStrict $ encode response
 
-handleRequest :: (MonadCpi c m) => (Request -> Cpi c m Response)
+handleRequest :: (MonadCpi c m) => (Request -> m Response)
 handleRequest request@Request{
     requestMethod = method
   , requestArguments = arguments
@@ -119,37 +120,34 @@ handleRequest request@Request{
         return $ createSuccess (Id "")
       _ -> throwM $ NotImplemented ("Unknown method call '" <> method <> "'")
 
-newtype (Monad m, MonadCpi c m) => Cpi c m a = Cpi {
-  unCpi :: ReaderT c m a
-} deriving (Functor, Applicative, Monad, MonadReader c, MonadThrow, MonadCatch, MonadTrans)
-
-runCpi :: MonadCpi c m => c -> Cpi c m a -> m a
-runCpi config cpi = unCpi cpi `runReaderT` config
-
-instance MonadArguments m => MonadArguments (Cpi c m) where
-  arguments = lift arguments
-
-instance (MonadFileSystem m) => MonadFileSystem (Cpi c m) where
-  readFile = lift.readFile
-
-instance (MonadWait m) => MonadWait (Cpi c m) where
-  wait = lift.wait
-
-instance (MonadConsole m) => MonadConsole (Cpi c m) where
-  readStdin = lift readStdin
-  writeStdout = lift.writeStdout
-  writeStderr = lift.writeStderr
-
-class (MonadThrow m, MonadLog (WithSeverity Text) m, MonadConsole m) => MonadCpi c m | c -> m where
+class ( MonadThrow m
+      , MonadLog (WithSeverity Text) m
+      , MonadConsole m)
+      => CpiConfiguration c m | c -> m where
   parseConfig :: ByteString -> m c
-  createStemcell :: FilePath -> StemcellProperties -> Cpi c m StemcellId
-  deleteStemcell :: StemcellId -> Cpi c m ()
+
+class ( Monad m
+      , MonadReader c m
+      , Monad m'
+      , MonadArguments m'
+      , MonadFileSystem m'
+      , CpiConfiguration c m')
+      => CpiRunner c m m' a where
+  runCpi :: c -> m a -> m' a
+
+class ( MonadReader c m
+      , MonadThrow m
+      , MonadLog (WithSeverity Text) m
+      , MonadConsole m)
+      => MonadCpi c m | c -> m where
+  createStemcell :: FilePath -> StemcellProperties -> m StemcellId
+  deleteStemcell :: StemcellId -> m ()
   createVm :: AgentId -> StemcellId -> VmProperties -> Networks
-              -> DiskLocality -> Environment -> Cpi c m VmId
-  hasVm :: VmId -> Cpi c m Bool
-  deleteVm :: VmId -> Cpi c m ()
-  createDisk :: Integer -> DiskProperties -> VmId -> Cpi c m DiskId
-  hasDisk :: DiskId -> Cpi c m Bool
-  deleteDisk :: DiskId -> Cpi c m ()
-  attachDisk :: VmId -> DiskId -> Cpi c m ()
-  detachDisk :: VmId -> DiskId -> Cpi c m ()
+              -> DiskLocality -> Environment -> m VmId
+  hasVm :: VmId -> m Bool
+  deleteVm :: VmId -> m ()
+  createDisk :: Integer -> DiskProperties -> VmId -> m DiskId
+  hasDisk :: DiskId -> m Bool
+  deleteDisk :: DiskId -> m ()
+  attachDisk :: VmId -> DiskId -> m ()
+  detachDisk :: VmId -> DiskId -> m ()
