@@ -4,6 +4,8 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE UndecidableInstances   #-}
+{-# LANGUAGE TypeFamilies           #-}
+
 
 module CPI.Base(
     module Base
@@ -19,7 +21,7 @@ import           Prelude                      hiding (readFile)
 import           CPI.Base.AgentConfig         as Base
 import           CPI.Base.Data                as Base
 import           CPI.Base.Errors              as Base
-import           CPI.Base.Request             as Base
+import           CPI.Base.Request             as Base hiding (VmProperties)
 import           CPI.Base.Response            as Base
 import           CPI.Base.System              as Base
 
@@ -138,11 +140,15 @@ class ( Monad m
 class ( MonadReader c m
       , MonadThrow m
       , MonadLog (WithSeverity Text) m
-      , MonadConsole m)
+      , MonadConsole m
+      , FromJSON (VmProperties c))
       => MonadCpi c m | c -> m where
+
+  type VmProperties c
+
   createStemcell :: FilePath -> StemcellProperties -> m StemcellId
   deleteStemcell :: StemcellId -> m ()
-  createVm :: AgentId -> StemcellId -> VmProperties -> Networks
+  createVm :: AgentId -> StemcellId -> (VmProperties c) -> Networks
               -> DiskLocality -> Environment -> m VmId
   hasVm :: VmId -> m Bool
   deleteVm :: VmId -> m ()

@@ -10,7 +10,6 @@ module CPI.Base.Request(
   , VolumeId(..)
   , VmId(..)
   , DiskId(..)
-  , VmProperties(..)
   , StemcellProperties(..)
   , DiskProperties(..)
   , DiskLocality(..)
@@ -70,12 +69,10 @@ newtype StemcellId = StemcellId Text deriving (Eq, Show, FromJSON, ToJSON)
 newtype VolumeId = VolumeId Text deriving (Eq, Show, FromJSON, ToJSON)
 newtype VmId = VmId Text deriving (Eq, Show, FromJSON, ToJSON)
 newtype DiskId = DiskId Text deriving (Eq, Show, FromJSON, ToJSON)
-newtype VmProperties = VmProperties Value deriving (Eq, Show, FromJSON, ToJSON)
 newtype StemcellProperties = StemcellProperties Value deriving (Eq, Show, FromJSON, ToJSON)
 newtype DiskProperties = DiskProperties Value deriving (Eq, Show, FromJSON, ToJSON)
 type DiskLocality = [VolumeId]
 
 makeWrapped ''StemcellId
-makeWrapped ''VmProperties
 makeWrapped ''VmId
 makeWrapped ''DiskId
