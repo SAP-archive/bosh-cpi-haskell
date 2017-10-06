@@ -104,12 +104,12 @@ parseValue name raw = case fromJSON raw of
   Error msg -> throwM $ CloudError $ "Could not parse '" <> name <> "': " <> Text.pack msg
 
 -- TODO we should use DiskId instead of Text
-addPersistentDisk :: AgentSettings -> Text -> Text -> AgentSettings
-addPersistentDisk settings diskId path = settings & disks.persistent.at diskId.non "" .~ path
+addPersistentDisk :: Text -> Text -> AgentSettings -> AgentSettings
+addPersistentDisk diskId path settings = settings & disks.persistent.at diskId.non "" .~ path
 
 -- TODO we should use DiskId instead of Text
-removePersistentDisk :: AgentSettings -> Text -> AgentSettings
-removePersistentDisk settings diskId = settings & disks.persistent.at diskId .~ Nothing
+removePersistentDisk :: Text -> AgentSettings -> AgentSettings
+removePersistentDisk diskId settings = settings & disks.persistent.at diskId .~ Nothing
   -- Example settings.json
   -- {
   --   "agent_id": "agent-xxxxxx",
