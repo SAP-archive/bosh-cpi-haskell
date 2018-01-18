@@ -16,10 +16,10 @@ module CPI.Base.TestSupport(
 import           CPI.Base
 
 
-import           Control.Monad.Stub.Arguments
-import           Control.Monad.Stub.Console
-import           Control.Monad.Stub.FileSystem
-import           Control.Monad.Stub.StubMonad
+import           Control.Effect.Stub.Arguments
+import           Control.Effect.Stub.Console
+import           Control.Effect.Stub.FileSystem
+
 
 import           Control.Monad.Reader
 import           Control.Monad.Writer
@@ -27,11 +27,11 @@ import           Data.Maybe
 import           Data.Monoid
 
 import           Control.Exception.Safe
-import           Data.ByteString               (ByteString)
-import qualified Data.ByteString               as ByteString hiding (unpack)
-import           Data.HashMap.Strict           (HashMap)
-import qualified Data.HashMap.Strict           as HashMap
-import           Data.Text                     (Text)
+import           Data.ByteString                (ByteString)
+import qualified Data.ByteString                as ByteString hiding (unpack)
+import           Data.HashMap.Strict            (HashMap)
+import qualified Data.HashMap.Strict            as HashMap
+import           Data.Text                      (Text)
 import           Test.Hspec
 
 

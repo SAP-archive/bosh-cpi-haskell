@@ -124,12 +124,12 @@ spec = do
 
   describe "addPersistentDisk" $ do
      it "should add a persistent disk" $ do
-       let diskSettings = addPersistentDisk defaultSettings "disk1" "/var/vcap/store"
+       let diskSettings = addPersistentDisk "disk1" "/var/vcap/store" defaultSettings
        diskSettings ^. disks.persistent.at "disk1"._Just `shouldBe` "/var/vcap/store"
 
   describe "removePersistentDisk" $ do
      it "should remove a persistent disk" $ do
-       let diskSettings = removePersistentDisk settingsWithDisk "disk1"
+       let diskSettings = removePersistentDisk "disk1" settingsWithDisk
        diskSettings ^. disks.persistent.at "disk1" `shouldBe` Nothing
 
 Success defaultSettings = fromJSON [aesonQQ|

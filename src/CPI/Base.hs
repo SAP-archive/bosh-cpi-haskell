@@ -3,57 +3,57 @@
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE UndecidableInstances   #-}
 {-# LANGUAGE TypeFamilies           #-}
+{-# LANGUAGE UndecidableInstances   #-}
 
 
 module CPI.Base(
     module Base
   , CpiRunner(..)
-  , MonadCpi(..)
+  , Cpi(..)
   , CpiConfiguration(..)
   , runRequest
   , handleRequest
 ) where
 
-import           Prelude                      hiding (readFile)
+import           Prelude                         hiding (readFile)
 
-import           CPI.Base.AgentConfig         as Base
-import           CPI.Base.Data                as Base
-import           CPI.Base.Errors              as Base
-import           CPI.Base.Request             as Base hiding (VmProperties)
-import           CPI.Base.Response            as Base
-import           CPI.Base.System              as Base
+import           CPI.Base.AgentConfig            as Base
+import           CPI.Base.Data                   as Base
+import           CPI.Base.Errors                 as Base
+import           CPI.Base.Request                as Base hiding (VmProperties)
+import           CPI.Base.Response               as Base
+import           CPI.Base.System                 as Base
 
 import           Control.Monad.Reader
 
-import           Control.Monad.Arguments
-import           Control.Monad.Console
-import           Control.Monad.FileSystem
-import           Control.Monad.Wait
+import           Control.Effect.Class.Arguments
+import           Control.Effect.Class.Console
+import           Control.Effect.Class.FileSystem
+import           Control.Effect.Class.Wait
 
-import           Data.ByteString              (ByteString)
-import qualified Data.ByteString.Char8        as ByteString
-import           Data.ByteString.Lazy         (toStrict)
-import           Data.HashMap.Strict          as HashMap
-import           Data.Text                    (Text)
-import           Data.Text.Lazy               (fromStrict)
+import           Data.ByteString                 (ByteString)
+import qualified Data.ByteString.Char8           as ByteString
+import           Data.ByteString.Lazy            (toStrict)
+import           Data.HashMap.Strict             as HashMap
+import           Data.Text                       (Text)
+import           Data.Text.Lazy                  (fromStrict)
 
 import           Control.Exception.Safe
 import           Data.Aeson
 import           Data.Semigroup
 
 import           Control.Monad.Log
-import           Text.PrettyPrint.Leijen.Text (Doc, text)
-import           Text.PrettyPrint.Leijen.Text hiding ((<$>), (<>))
+import           Text.PrettyPrint.Leijen.Text    (Doc, text)
+import           Text.PrettyPrint.Leijen.Text    hiding ((<$>), (<>))
 
 
 runRequest :: ( Monad m
                 , MonadReader c m
                 , Monad m'
                 , MonadCatch m'
-                , MonadArguments m'
-                , MonadFileSystem m'
+                , Arguments m'
+                , FileSystem m'
                 , CpiConfiguration c m'
                 , CpiRunner c m m' Response) => (Request -> m Response) -> m' ()
 runRequest handleRequest = do
@@ -64,7 +64,7 @@ runRequest handleRequest = do
   response <- execute `catch` (pure.createFailure)
   writeResponse $ toStrict $ encode response
 
-handleRequest :: (MonadCpi c m) => (Request -> m Response)
+handleRequest :: (Cpi c m) => (Request -> m Response)
 handleRequest request@Request{
     requestMethod = method
   , requestArguments = arguments
@@ -124,15 +124,15 @@ handleRequest request@Request{
 
 class ( MonadThrow m
       , MonadLog (WithSeverity Text) m
-      , MonadConsole m)
+      , Console m)
       => CpiConfiguration c m | c -> m where
   parseConfig :: ByteString -> m c
 
 class ( Monad m
       , MonadReader c m
       , Monad m'
-      , MonadArguments m'
-      , MonadFileSystem m'
+      , Arguments m'
+      , FileSystem m'
       , CpiConfiguration c m')
       => CpiRunner c m m' a where
   runCpi :: c -> m a -> m' a
@@ -140,9 +140,9 @@ class ( Monad m
 class ( MonadReader c m
       , MonadThrow m
       , MonadLog (WithSeverity Text) m
-      , MonadConsole m
+      , Console m
       , FromJSON (VmProperties c))
-      => MonadCpi c m | c -> m where
+      => Cpi c m | c -> m where
 
   type VmProperties c
 

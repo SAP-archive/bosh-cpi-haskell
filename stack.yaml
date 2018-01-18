@@ -38,6 +38,8 @@ resolver: lts-7.13
 # will not be run. This is useful for tweaking upstream packages.
 packages:
 - '.'
+- location: 'dependencies/effect-stubs'
+  extra-dep: true
 # - location: 'forks/logging-effect'
 #   extra-dep: true
 # Dependency packages to be pulled from upstream that are not in the resolver
