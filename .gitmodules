@@ -1,3 +1,3 @@
 [submodule "dependencies/effect-stubs"]
 	path = dependencies/effect-stubs
-	url = git@github.com:SAP/effect-stubs.git
+	url = https://github.com/SAP/effect-stubs.git
