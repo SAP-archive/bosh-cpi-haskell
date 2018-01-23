@@ -45,4 +45,4 @@ spec = do
       it "throws a cloud error" $ do
         (parseArgument :: Value -> IO Object) [aesonQQ|["value"]|]
           `shouldThrow`
-            cloudErrorWithMessage ("Could not parse value '[\"value\"]': 'expected HashMap Text a, encountered Array'")
+            cloudErrorWithMessage ("Could not parse value '[\"value\"]': 'expected HashMap ~Text v, encountered Array'")
